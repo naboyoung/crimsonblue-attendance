@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/* Light (기본) */
+:root {
+  --bg: 248 250 252;       /* #f8fafc */
+  --fg: 15 23 42;          /* #0f172a */
+  --muted: 100 116 139;    /* #64748b */
+
+  --card: 255 255 255;
+  --border: 226 232 240;   /* slate-200 */
+
+  --brand: 15 23 42;       /* 라이트: 무채 primary */
+  --brand-weak: 51 65 85;  /* slate-700 */
+}
+
+/* Dark (Violet Bloom) */
+.dark {
+  --bg: 11 11 15;
+  --fg: 245 246 255;
+  --muted: 160 166 186;
+
+  --card: 20 20 28;
+  --border: 44 44 58;
+
+  --brand: 140 92 255;      /* #8c5cff */
+  --brand-weak: 190 169 255;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background-color: rgb(var(--bg));
+    color: rgb(var(--fg));
+    font-family:
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      "Apple SD Gothic Neo",
+      "Noto Sans KR",
+      "Malgun Gothic",
+      Arial,
+      sans-serif;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  .safe-padding {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
