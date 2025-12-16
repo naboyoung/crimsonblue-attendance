@@ -1,7 +1,7 @@
 // ✅ src/lib/server/memberManageService.ts
 import crypto from 'crypto';
 import { readSheetObjects, appendRows, updateRowByKey } from '@/lib/server/googleSheets'; // ✅ 너 프로젝트 googleSheets.ts에 맞춰져야 함
-import { nowKSTString } from '@/lib/server/time'; // ✅ 없으면 아래 주석 참고
+import { nowKSTString } from '@/lib/server/googleSheets'; // ✅ 없으면 아래 주석 참고
 
 type Role = '운영진' | '정회원' | '준회원' | '휴면' | '탈퇴';
 
