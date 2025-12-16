@@ -1,41 +1,28 @@
 "use client";
 import { useEffect, useState } from "react";
 
-type Theme = "light" | "dark" | "system";
+export type Theme = "light" | "dark";
 
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
-  const isDark =
-    theme === "dark" ||
-    (theme === "system" &&
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches);
-
-  root.classList.toggle("dark", isDark);
+  root.classList.toggle("dark", theme === "dark");
 }
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>("system");
+  const [theme, setThemeState] = useState<Theme>("light");
 
   useEffect(() => {
-    const saved = (localStorage.getItem("theme") as Theme) || "system";
-    setTheme(saved);
+    const raw = localStorage.getItem("theme");
+    const saved: Theme = raw === "dark" ? "dark" : "light"; // ✅ system 등 이상값 방어
+    setThemeState(saved);
     applyTheme(saved);
-
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => {
-      const cur = (localStorage.getItem("theme") as Theme) || "system";
-      if (cur === "system") applyTheme("system");
-    };
-    mq.addEventListener?.("change", onChange);
-    return () => mq.removeEventListener?.("change", onChange);
   }, []);
 
-  const update = (next: Theme) => {
+  const setTheme = (next: Theme) => {
     localStorage.setItem("theme", next);
-    setTheme(next);
+    setThemeState(next);
     applyTheme(next);
   };
 
-  return { theme, setTheme: update };
+  return { theme, setTheme };
 }

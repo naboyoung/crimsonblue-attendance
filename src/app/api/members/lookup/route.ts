@@ -64,7 +64,6 @@ function pad2(n: number) {
 }
 
 function lastDayOfMonth(y: number, m1: number) {
-  // m1: 1-12
   return new Date(Date.UTC(y, m1, 0)).getUTCDate();
 }
 
@@ -83,7 +82,7 @@ function getKSTDateParts() {
 
 function rangeForQuarterKST() {
   const { y, m } = getKSTDateParts();
-  const startMonth = Math.floor((m - 1) / 3) * 3 + 1; // 1,4,7,10
+  const startMonth = Math.floor((m - 1) / 3) * 3 + 1;
   const endMonth = startMonth + 2;
   return {
     start: `${y}-${pad2(startMonth)}-01`,
@@ -106,7 +105,6 @@ function inRangeISO(dateISO: string, startISO: string, endISO: string) {
 }
 
 function toISODateFromDot(dateRaw: string) {
-  // 기대 입력: "2025. 12. 16" 또는 "2025.12.16"
   const s = String(dateRaw ?? "").trim();
   if (!s) return "";
 
@@ -129,7 +127,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
 
     const name = (url.searchParams.get("name") ?? "").trim();
-    const rolesParam = (url.searchParams.get("roles") ?? "").trim(); // 단일 role
+    const rolesParam = (url.searchParams.get("roles") ?? "").trim();
     const attendanceUnder = (url.searchParams.get("attendance_under") ?? "").trim(); // quarter|half
 
     // 1) Members 로드
@@ -146,11 +144,10 @@ export async function GET(req: Request) {
       filtered = filtered.filter((m) => (m["role"] ?? "").trim() === rolesParam);
     }
 
-    // 3) 출석 미달 필터(있을 때만 total_score 계산)
+    // 3) 출석 미달 필터
     let totalScoreByMember: Map<string, number> | null = null;
 
     if (attendanceUnder === "quarter" || attendanceUnder === "half") {
-      // 활동 대상자만 (운영진/정회원/준회원 + is_active=true)
       const activeCandidates = filtered.filter((m) => {
         const role = ((m["role"] ?? "").trim() as MemberRole) || "";
         const active = normalizeBool(m["is_active"] ?? "");
@@ -158,14 +155,11 @@ export async function GET(req: Request) {
         return role === "운영진" || role === "정회원" || role === "준회원";
       });
 
-      // 기간 결정(KST 기준)
       const { start, end } =
         attendanceUnder === "quarter" ? rangeForQuarterKST() : rangeForHalfKST();
 
-      // AttendanceHistory 로드
       const { rows: attendanceRows } = await readSheetAsRows(ATTENDANCE_SHEET, "A1:Z");
 
-      // member_id별 score 합산
       const sumByMember = new Map<string, number>();
       for (const r of attendanceRows) {
         const memberId = (r["member_id"] ?? "").trim();
@@ -183,25 +177,22 @@ export async function GET(req: Request) {
 
       totalScoreByMember = sumByMember;
 
-      // 기준 비교(미달자만)
       filtered = activeCandidates.filter((m) => {
         const role = ((m["role"] ?? "").trim() as MemberRole) || "";
         const memberId = (m["member_id"] ?? "").trim();
         const total = sumByMember.get(memberId) ?? 0;
 
         if (attendanceUnder === "quarter") {
-          // 운영진/정회원: 분기 3점 미달자
           if (!(role === "운영진" || role === "정회원")) return false;
           return total < 3;
         }
 
-        // half: 준회원 반기 4점 미달자
         if (role !== "준회원") return false;
         return total < 4;
       });
     }
 
-    // 4) 응답(조회/관리 UI에서 공통으로 쓸 필드 + total_score 선택적)
+    // 4) 응답(조회/관리 공통 필드 + total_score 선택적)
     const result = filtered
       .map((m) => {
         const member_id = (m["member_id"] ?? "").trim();
@@ -211,22 +202,33 @@ export async function GET(req: Request) {
           name: string;
           role: string;
 
-          // ✅ 조회 카드에서 필요한 값들
           phone_number: string;
           school: string;
           level: string;
+          
+          gender: string;
+          birth_year: string;
+          region: string;
+          join_date: string;
+          last_updated_at: string;
+          comment: string;
 
-          // ✅ 출석 미달 필터 때만
           total_score?: number;
         } = {
           member_id,
           name: (m["name"] ?? "").trim(),
           role: (m["role"] ?? "").trim(),
 
-          // ✅ 추가
           phone_number: (m["phone_number"] ?? "").trim(),
           school: (m["school"] ?? "").trim(),
           level: (m["level"] ?? "").trim(),
+
+          gender: (m["gender"] ?? "").trim(),
+          birth_year: (m["birth_year"] ?? "").trim(),
+          region: (m["region"] ?? "").trim(),
+          join_date: (m["join_date"] ?? "").trim(),
+          last_updated_at: (m["last_updated_at"] ?? "").trim(),
+          comment: (m["comment"] ?? "").trim(),
         };
 
         if (totalScoreByMember) {
@@ -237,7 +239,7 @@ export async function GET(req: Request) {
       })
       .filter((m) => m.member_id && m.name && m.role);
 
-    return NextResponse.json({ ok: true, members: result });
+    return NextResponse.json({ ok: true, members: result, });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ ok: false, message: msg }, { status: 500 });

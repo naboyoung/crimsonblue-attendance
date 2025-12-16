@@ -65,8 +65,8 @@ export async function POST(req: Request) {
 
     // ✅ [변경] attendanceService가 기대하는 snake_case로 변환
     const payloadForService = {
-      date,
       session_id: sessionId,
+      date,
       meeting_type: meetingType as MeetingType,
       gym_name: gymName,
       writer,

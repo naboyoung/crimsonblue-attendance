@@ -1,99 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useTheme } from "@/app/providers/theme";
 
-type ThemeMode = "light" | "dark" | "system";
-
-function getSystemPrefersDark() {
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-}
-
-export default function ThemeToggle() {
-  const [mounted, setMounted] = useState(false);
-  const [mode, setMode] = useState<ThemeMode>("system");
-
-  // UI 표시용: 현재 실제 적용 중인 테마
-  const effectiveIsDark = useMemo(() => {
-    if (!mounted) return false;
-    if (mode === "dark") return true;
-    if (mode === "light") return false;
-    return getSystemPrefersDark();
-  }, [mode, mounted]);
-
-  useEffect(() => {
-    setMounted(true);
-
-    const saved = (localStorage.getItem("theme") as ThemeMode | null) ?? "system";
-    setMode(saved);
-
-    const apply = (m: ThemeMode) => {
-      const shouldDark = m === "dark" || (m === "system" && getSystemPrefersDark());
-      document.documentElement.classList.toggle("dark", shouldDark);
-    };
-
-    apply(saved);
-
-    // system 모드일 때만 OS 테마 변경을 추적
-    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
-    if (!mq) return;
-
-    const onChange = () => {
-      const current = (localStorage.getItem("theme") as ThemeMode | null) ?? "system";
-      if (current === "system") apply("system");
-    };
-
-    mq.addEventListener?.("change", onChange);
-    return () => mq.removeEventListener?.("change", onChange);
-  }, []);
-
-  const applyMode = (next: ThemeMode) => {
-    setMode(next);
-    localStorage.setItem("theme", next);
-
-    const shouldDark = next === "dark" || (next === "system" && getSystemPrefersDark());
-    document.documentElement.classList.toggle("dark", shouldDark);
-  };
-
-  if (!mounted) return null;
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === "dark";
 
   return (
-    <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-card p-1">
-      <button
-        type="button"
-        onClick={() => applyMode("light")}
-        className={[
-          "rounded-lg px-3 py-1.5 text-sm font-medium",
-          mode === "light" ? "bg-brand text-white" : "text-fg hover:bg-white/5",
-        ].join(" ")}
-      >
-        Light
-      </button>
-
-      <button
-        type="button"
-        onClick={() => applyMode("dark")}
-        className={[
-          "rounded-lg px-3 py-1.5 text-sm font-medium",
-          mode === "dark" ? "bg-brand text-white" : "text-fg hover:bg-white/5",
-        ].join(" ")}
-      >
-        Dark
-      </button>
-
-      <button
-        type="button"
-        onClick={() => applyMode("system")}
-        className={[
-          "rounded-lg px-3 py-1.5 text-sm font-medium",
-          mode === "system" ? "bg-brand text-white" : "text-fg hover:bg-white/5",
-        ].join(" ")}
-      >
-        System
-      </button>
-
-      <span className="ml-1 hidden sm:inline text-xs text-muted">
-        (now: {effectiveIsDark ? "dark" : "light"})
-      </span>
-    </div>
+    <button
+      type="button"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900"
+      aria-label="테마 토글"
+    >
+      {isDark ? "🌙 다크" : "☀️ 라이트"}
+    </button>
   );
 }

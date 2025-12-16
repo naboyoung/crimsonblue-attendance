@@ -1,15 +1,14 @@
-import { cn } from "@/lib/cn";
-
-export function Card({
-  className,
+export default function Card({
+  className = "",
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn(
-        "rounded-2xl border border-border bg-card p-4 shadow-soft",
-        className
-      )}
+      className={[
+        "rounded-xl border border-border bg-card",
+        "shadow-soft",
+        className,
+      ].join(" ")}
       {...props}
     />
   );
