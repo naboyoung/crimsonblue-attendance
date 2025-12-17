@@ -27,15 +27,13 @@ type SessionSummary = {
   attendees: SessionAttendee[];
 };
 
-// ✅ Members API 최소 타입
-// (실제로는 members API가 camelCase로 내려줄 수도 있어서 아래에서 안전 처리함)
 type Member = {
   member_id?: string;
   name?: string;
   role?: string; // 운영진/정회원/준회원/휴면/탈퇴
   is_active?: string | boolean;
   join_date?: string; // snake 가능
-  joinDate?: string;  // camel 가능
+  joinDate?: string; // camel 가능
 };
 
 type RoleFilter = '전체' | '운영진' | '정회원' | '준회원';
@@ -50,7 +48,7 @@ type MemberCardRow = {
   joinDateRaw: string; // join_date/joinDate 원본 (신입 판정용)
   quarterScore: number;
   halfScore: number;
-  displayScore: number; // ✅ role 기준으로 보여줄 점수(운영진/정회원=분기, 준회원=반기)
+  displayScore: number;
   displayPeriodLabel: '이번분기' | '이번반기';
 };
 
@@ -64,18 +62,16 @@ type MemberAttendanceRow = {
 };
 
 /* ------------------------ 설정(여기만 바꾸면 됨) ------------------------ */
-// ✅ 확정 룰 반영
 const MIN_QUARTER_SCORE_BY_ROLE: Record<'운영진' | '정회원', number> = {
   운영진: 3,
   정회원: 3,
 };
 
-const MIN_HALF_SCORE_FOR_JUNIOR = 4; // ✅ 준회원 반기 기준
+const MIN_HALF_SCORE_FOR_JUNIOR = 4;
 /* ---------------------------------------------------------------------- */
 
 /* ---------------- 유틸 ---------------- */
 function parseDateYMD(d: string) {
-  // 지원: "YYYY-MM-DD", "YYYY. MM. DD", "YYYY.MM.DD", "YYYY/MM/DD"
   const s = String(d ?? '').trim();
   if (!s) return null;
 
@@ -91,7 +87,6 @@ function parseDateYMD(d: string) {
 }
 
 function parseJoinYearMonth(join: string) {
-  // 지원: "YYYY-M", "YYYY-MM", "YYYY. M", "YYYY/MM"
   const s = String(join ?? '').trim();
   if (!s) return null;
 
@@ -102,7 +97,7 @@ function parseJoinYearMonth(join: string) {
   const m = Number(mStr);
 
   if (!y || !m) return null;
-  return { y, m }; // m: 1~12
+  return { y, m };
 }
 
 function getQuarter(m0: number) {
@@ -114,7 +109,6 @@ function inQuarter(date: Date, y: number, q: number) {
 }
 
 function getHalf(m0: number) {
-  // 0~5 => 상반기(1), 6~11 => 하반기(2)
   return m0 <= 5 ? 1 : 2;
 }
 
@@ -136,39 +130,31 @@ function isActiveRole(role?: string) {
 }
 
 function monthsDiff(nowY: number, nowM: number, joinY: number, joinM: number) {
-  // nowM/joinM: 1~12
   return nowY * 12 + nowM - (joinY * 12 + joinM);
 }
 
 function getJoinDateRaw(m: Member) {
-  // ✅ join_date(스네이크) / joinDate(카멜) 둘 다 지원
   return String((m as any).join_date ?? (m as any).joinDate ?? '').trim();
 }
 
 /* ---------------- 컴포넌트 ---------------- */
 export default function MemberView() {
-  // 데이터
   const [members, setMembers] = useState<Member[]>([]);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
-  // UI
   const [nameQuery, setNameQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('전체');
 
-  // 추가 필터 토글
-  const [onlyNewbie, setOnlyNewbie] = useState(false); // ✅ 신입(6개월)
-  const [onlyUnderScore, setOnlyUnderScore] = useState(false); // ✅ 점수 미달자(역할별/기간별)
+  const [onlyNewbie, setOnlyNewbie] = useState(false);
+  const [onlyUnderScore, setOnlyUnderScore] = useState(false);
 
-  // 정렬
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-  // 상세 펼침
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
 
-  // 1) members + attendance(history) 동시 로딩
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -212,7 +198,6 @@ export default function MemberView() {
     load();
   }, []);
 
-  // 2) 활동회원(운영진/정회원/준회원)만 리스트 기준
   const activeMembers = useMemo(() => {
     return members
       .filter((m) => isActiveTrue((m as any).is_active ?? (m as any).isActive))
@@ -221,19 +206,17 @@ export default function MemberView() {
         memberId: String((m as any).member_id ?? (m as any).memberId ?? '').trim(),
         name: String((m as any).name ?? '').trim(),
         role: String((m as any).role ?? '').trim() as '운영진' | '정회원' | '준회원',
-        joinDateRaw: getJoinDateRaw(m), // ✅ join_date/joinDate 모두 지원
+        joinDateRaw: getJoinDateRaw(m),
       }))
       .filter((m) => m.memberId && m.name);
   }, [members]);
 
-  // 3) 이름->memberId 매핑(출석기록에 memberId 없을 때 fallback)
   const nameToMemberId = useMemo(() => {
     const map = new Map<string, string>();
     for (const m of activeMembers) map.set(m.name, m.memberId);
     return map;
   }, [activeMembers]);
 
-  // 4) 이번 분기/이번 반기 세션만 추출
   const thisQuarterSessions = useMemo(() => {
     const now = new Date();
     const y = now.getFullYear();
@@ -258,13 +241,11 @@ export default function MemberView() {
     });
   }, [sessions]);
 
-  // 5) 회원별 점수(분기/반기) + 상세 rows 계산
   const buildMemberPeriodData = (
     periodSessions: SessionSummary[],
   ): Map<string, { scoreSum: number; rows: MemberAttendanceRow[] }> => {
     const map = new Map<string, { scoreSum: number; rows: MemberAttendanceRow[] }>();
 
-    // 활동회원 기본값
     for (const m of activeMembers) {
       map.set(m.memberId, { scoreSum: 0, rows: [] });
     }
@@ -275,9 +256,7 @@ export default function MemberView() {
         if (!attendeeName) continue;
 
         const attendeeMemberId =
-          String((a as any).memberId ?? '').trim() ||
-          nameToMemberId.get(attendeeName) ||
-          '';
+          String((a as any).memberId ?? '').trim() || nameToMemberId.get(attendeeName) || '';
 
         if (!attendeeMemberId || !map.has(attendeeMemberId)) continue;
 
@@ -296,12 +275,9 @@ export default function MemberView() {
       }
     }
 
-    // 최신순 정렬
     for (const [, v] of map) {
       v.rows.sort(
-        (ra, rb) =>
-          (parseDateYMD(rb.date)?.getTime() ?? 0) -
-          (parseDateYMD(ra.date)?.getTime() ?? 0),
+        (ra, rb) => (parseDateYMD(rb.date)?.getTime() ?? 0) - (parseDateYMD(ra.date)?.getTime() ?? 0),
       );
     }
 
@@ -318,16 +294,15 @@ export default function MemberView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [thisHalfSessions, activeMembers, nameToMemberId]);
 
-  // 6) 신입 판정(가입월 포함 6개월: 0~5개월)
   const isNewbieMember = useMemo(() => {
     const now = new Date();
     const nowY = now.getFullYear();
-    const nowM = now.getMonth() + 1; // 1~12
+    const nowM = now.getMonth() + 1;
 
     const map = new Map<string, boolean>();
 
     for (const m of activeMembers) {
-      const ym = parseJoinYearMonth(m.joinDateRaw); // ✅ YYYY-MM 정상 처리
+      const ym = parseJoinYearMonth(m.joinDateRaw);
       if (!ym) {
         map.set(m.memberId, false);
         continue;
@@ -339,7 +314,6 @@ export default function MemberView() {
     return map;
   }, [activeMembers]);
 
-  // 7) role 기준 표시 점수/미달 판정
   const getDisplayScore = (role: MemberCardRow['role'], quarterScore: number, halfScore: number) => {
     return role === '준회원' ? halfScore : quarterScore;
   };
@@ -366,7 +340,6 @@ export default function MemberView() {
     return map;
   }, [activeMembers, memberQuarterData, memberHalfData]);
 
-  // 8) 카드 리스트 생성 + 검색/필터 + 정렬 (✅ 표시 점수 기준)
   const filteredCards = useMemo((): MemberCardRow[] => {
     const q = nameQuery.trim();
     const rf = roleFilter;
@@ -400,7 +373,6 @@ export default function MemberView() {
         return sortDir === 'asc' ? cmp : -cmp;
       }
 
-      // score: ✅ 표시 점수 기준 정렬
       const diff = a.displayScore - b.displayScore;
       if (diff !== 0) return sortDir === 'asc' ? diff : -diff;
 
@@ -423,7 +395,6 @@ export default function MemberView() {
     isUnderScoreMember,
   ]);
 
-  // 확장된 멤버 상세: ✅ role 기준 기간의 rows 사용
   const expandedMember = useMemo(() => {
     if (!expandedMemberId) return null;
     return activeMembers.find((m) => m.memberId === expandedMemberId) ?? null;
@@ -463,7 +434,6 @@ export default function MemberView() {
       <div className="flex items-center justify-between">
         <div className="text-base font-semibold">Member View</div>
 
-        {/* 정렬 컨트롤 */}
         <div className="flex items-center gap-2">
           <select
             value={sortKey}
@@ -484,7 +454,6 @@ export default function MemberView() {
         </div>
       </div>
 
-      {/* 검색/필터 */}
       <section className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
         <div className="grid gap-2">
           <label className="text-sm text-slate-600">이름 검색</label>
@@ -496,7 +465,6 @@ export default function MemberView() {
           />
         </div>
 
-        {/* Role 필터 */}
         <div className="grid gap-2">
           <label className="text-sm text-slate-600">Role 필터</label>
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -521,7 +489,6 @@ export default function MemberView() {
           </div>
         </div>
 
-        {/* 추가 필터 */}
         <div className="grid gap-2">
           <label className="text-sm text-slate-600">추가 필터</label>
           <div className="flex flex-wrap gap-2">
@@ -558,19 +525,15 @@ export default function MemberView() {
         </div>
       </section>
 
-      {/* 로딩/에러 */}
       {loading && (
         <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
           불러오는 중...
         </div>
       )}
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {error}
-        </div>
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
       )}
 
-      {/* 리스트 */}
       {!loading && !error && (
         <section className="space-y-2">
           {filteredCards.length === 0 ? (
@@ -583,21 +546,24 @@ export default function MemberView() {
 
               return (
                 <div key={m.memberId} className="rounded-md border border-slate-200 bg-white">
-                  <button
-                    type="button"
-                    className="w-full text-left p-4"
-                    onClick={() => toggleExpand(m.memberId)}
-                  >
+                  <button type="button" className="w-full text-left p-4" onClick={() => toggleExpand(m.memberId)}>
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
-                        <div className="text-sm font-semibold text-slate-900">{m.name}</div>
+                        {/* ✅ 변경: 이름 우측에 신입 뱃지 배치 */}
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-semibold text-slate-900">{m.name}</div>
+                          {(isNewbieMember.get(m.memberId) ?? false) && (
+                            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700">
+                              신입
+                            </span>
+                          )}
+                        </div>
+
                         <div className="text-xs text-slate-500">{m.displayPeriodLabel}</div>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
-                          {m.role}
-                        </span>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">{m.role}</span>
                         <span className="text-xs text-slate-600">{expanded ? '▲' : '▼'}</span>
                       </div>
                     </div>
@@ -605,12 +571,8 @@ export default function MemberView() {
                     <div className="mt-2 flex items-center justify-between">
                       <div className="text-sm font-semibold text-slate-900">{m.displayScore}점</div>
 
+                      {/* ✅ 변경: 신입 뱃지는 위로 이동했으므로 여기선 미달만 */}
                       <div className="flex items-center gap-2">
-                        {(isNewbieMember.get(m.memberId) ?? false) && (
-                          <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700">
-                            신입
-                          </span>
-                        )}
                         {(isUnderScoreMember.get(m.memberId) ?? false) && (
                           <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs text-rose-700">
                             미달
@@ -620,7 +582,6 @@ export default function MemberView() {
                     </div>
                   </button>
 
-                  {/* 상세 */}
                   {expanded && expandedMember && expandedMember.memberId === m.memberId && (
                     <div className="border-t border-slate-200 p-4 space-y-3">
                       <div className="space-y-1">
@@ -639,23 +600,25 @@ export default function MemberView() {
                           <table className="w-full text-left text-sm">
                             <thead className="text-xs text-slate-500">
                               <tr className="border-b border-slate-200">
-                                <th className="py-2 pr-2">암장명</th>
-                                <th className="py-2 pr-2">날짜</th>
-                                <th className="py-2 pr-2">참석유형</th>
-                                <th className="py-2 pr-2">참석형태</th>
-                                <th className="py-2 pr-2 text-right">점수</th>
-                                <th className="py-2 pr-2">작성자</th>
+                                <th className="py-2 pr-2 text-center">암장명</th>
+                                <th className="py-2 pr-2 text-center">날짜</th>
+                                <th className="py-2 pr-2 text-center">참석유형</th>
+                                <th className="py-2 pr-2 text-center">참석형태</th>
+                                <th className="py-2 pr-2 text-center">점수</th>
+                                <th className="py-2 pr-2 text-center">작성자</th>
                               </tr>
                             </thead>
-                            <tbody>
+
+                            {/* ✅ 변경: 행(row)만 글씨 크기 축소 */}
+                            <tbody className="text-xs">
                               {expandedRows.map((r, idx) => (
                                 <tr key={idx} className="border-b border-slate-100">
-                                  <td className="py-2 pr-2 text-slate-900">{r.gymName}</td>
-                                  <td className="py-2 pr-2 text-slate-700">{r.date}</td>
-                                  <td className="py-2 pr-2 text-slate-700">{r.preregistered}</td>
-                                  <td className="py-2 pr-2 text-slate-700">{r.attendanceType}</td>
-                                  <td className="py-2 pr-2 text-right text-slate-900">{r.score}</td>
-                                  <td className="py-2 pr-2 text-slate-700">{r.writer || '-'}</td>
+                                  <td className="py-2 pr-2 text-center text-slate-900">{r.gymName}</td>
+                                  <td className="py-2 pr-2 text-center text-slate-700">{r.date}</td>
+                                  <td className="py-2 pr-2 text-center text-slate-700">{r.preregistered}</td>
+                                  <td className="py-2 pr-2 text-center text-slate-700">{r.attendanceType}</td>
+                                  <td className="py-2 pr-2 text-center text-slate-900">{r.score}</td>
+                                  <td className="py-2 pr-2 text-center text-slate-700">{r.writer || '-'}</td>
                                 </tr>
                               ))}
                             </tbody>

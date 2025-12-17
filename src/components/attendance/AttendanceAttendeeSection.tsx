@@ -141,9 +141,9 @@ export default function AttendanceAttendeeSection({
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
-              <th className="px-3 py-2 text-left">이름</th>
-              <th className="px-3 py-2 text-left">참석유형</th>
-              <th className="px-3 py-2 text-left">참석형태</th>
+              <th className="px-3 py-2 text-center">이름</th>
+              <th className="px-3 py-2 text-center">참석유형</th>
+              <th className="px-3 py-2 text-center">참석형태</th>
               <th className="px-3 py-2 text-center">삭제</th> {/* ✅ [추가] */}
             </tr>
           </thead>
@@ -157,9 +157,9 @@ export default function AttendanceAttendeeSection({
             ) : (
               attendees.map((a) => (
                 <tr key={a.id} className="hover:bg-slate-50">
-                  <td className="px-3 py-2">{a.name}</td>
-                  <td className="px-3 py-2">{a.preregistered}</td>
-                  <td className="px-3 py-2">{a.attendanceType}</td>
+                  <td className="px-3 py-2 text-center">{a.name}</td>
+                  <td className="px-3 py-2 text-center">{a.preregistered}</td>
+                  <td className="px-3 py-2 text-center">{a.attendanceType}</td>
                   <td className="px-3 py-2 text-center">
                     <button
                       type="button"

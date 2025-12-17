@@ -66,6 +66,42 @@ export default function AttendanceRegisterPage() {
     loadMembers();
   }, []);
 
+
+    // -----------------------------
+  // ✅ 최근 회차 / GymList 로딩
+  // -----------------------------
+  const [recentSessionId, setRecentSessionId] = useState<string>('');
+  const [gymOptions, setGymOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadRecentSession = async () => {
+      try {
+        const res = await fetch('/api/attendance/recent-session', { cache: 'no-store' });
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.ok) return;
+        setRecentSessionId(String(json.data?.recentSessionId ?? '').trim());
+      } catch {
+        // 조용히 무시
+      }
+    };
+    loadRecentSession();
+  }, []);
+
+  useEffect(() => {
+    const loadGyms = async () => {
+      try {
+        const res = await fetch('/api/gyms', { cache: 'no-store' });
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.ok) return;
+        const list = Array.isArray(json.data) ? json.data : [];
+        setGymOptions(list.map((x: any) => String(x ?? '').trim()).filter(Boolean));
+      } catch {
+        // 조용히 무시
+      }
+    };
+    loadGyms();
+  }, []);
+
   // -----------------------------
   // ✅ 자동완성 옵션
   // 1) writerOptions: 운영진만
@@ -222,6 +258,8 @@ export default function AttendanceRegisterPage() {
           onDescriptionChange={setDescription}
           onSessionIdChange={setSessionId}
           writerOptions={writerOptions}
+          recentSessionId={recentSessionId}
+          gymOptions={gymOptions}
         />
 
         <AttendanceAttendeeSection

@@ -19,7 +19,9 @@ type Props = {
   onDescriptionChange: (v: string) => void;
   onSessionIdChange: (v: string) => void;
 
-  writerOptions: string[]; // ✅ 자동완성 추가
+  writerOptions: string[];
+  recentSessionId?: string;
+  gymOptions?: string[]; // ✅ gym 자동완성 옵션
 };
 
 export default function AttendanceBasicInfoSection({
@@ -35,7 +37,9 @@ export default function AttendanceBasicInfoSection({
   onWriterChange,
   onDescriptionChange,
   onSessionIdChange,
-  writerOptions, // ✅ 자동완성 추가
+  writerOptions,
+  recentSessionId,
+  gymOptions, // ✅ 변경
 }: Props) {
   const showDescription = meetingType === '대관행사' || meetingType === '기타';
 
@@ -54,7 +58,15 @@ export default function AttendanceBasicInfoSection({
       </div>
 
       <div className="grid gap-2">
-        <label className="text-sm text-slate-600">회차(Session ID)</label>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-slate-600">
+          회차
+          </label>
+          <span className="text-xs text-slate-500">
+            (최근회차: {recentSessionId ? recentSessionId : '-'})
+          </span>
+        </div>
+        
         <input
           inputMode="numeric"
           value={sessionId}
@@ -77,20 +89,21 @@ export default function AttendanceBasicInfoSection({
         </select>
       </div>
 
+      {/* ✅ 변경: 암장명 input → AutocompleteInput 으로 교체 */}
       <div className="grid gap-2">
         <label className="text-sm text-slate-600">암장명 (필수)</label>
-        <input
+        <AutocompleteInput
           value={gymName}
-          onChange={(e) => onGymNameChange(e.target.value)}
+          onChange={onGymNameChange}
+          options={gymOptions ?? []}
           placeholder="암장명을 입력하세요"
-          className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+          noResultsText="일치하는 암장이 없습니다."
         />
       </div>
 
       <div className="grid gap-2">
         <label className="text-sm text-slate-600">작성자명 (필수)</label>
 
-        {/* ✅ 자동완성 추가 */}
         <AutocompleteInput
           value={writer}
           onChange={onWriterChange}
