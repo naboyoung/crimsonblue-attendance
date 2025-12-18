@@ -69,7 +69,7 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
   async function createMemo() {
     setSaving(true);
     try {
-      await fetch("/api/calendar-memo", {
+      const res = await fetch("/api/calendar-memo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -78,8 +78,21 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
           max_people: creating.max_people,
         }),
       });
+
+      
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        console.error("POST /api/calendar-memo failed:", res.status, text);
+        alert(`추가 실패 (${res.status})\n${text}`);
+        return;
+      }
+
+
       setCreating(emptyDraft());
       await onChanged();
+    } catch (e) {
+        console.error(e);
+        alert("추가 중 오류가 발생했어요. 콘솔 로그를 확인해줘.");
     } finally {
       setSaving(false);
     }
