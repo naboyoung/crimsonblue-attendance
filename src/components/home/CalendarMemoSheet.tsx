@@ -24,7 +24,7 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   date: string;
   memos: CalendarMemoRow[];
-  onChanged: () => Promise<void> | void;
+  onChanged: () => Promise<void> | void; // 저장/삭제 후 월 리프레시
 };
 
 type Draft = {
@@ -44,16 +44,23 @@ function emptyDraft(): Draft {
   return { meeting_type: "regular", assignee: "", gym_name: "", max_people: "" };
 }
 
-// ✅ 바텀시트 반투명일 때도 입력이 잘 보이도록(로컬에서만 적용)
-const INPUT_CLASS = "bg-black/70 border-white/15 placeholder:text-fg/40";
-
 export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }: Props) {
-  const [creating, setCreating] = React.useState<Draft>(() => emptyDraft());
   const [saving, setSaving] = React.useState(false);
 
+  // ✅ 2안: 기본은 목록, 필요할 때만 폼 펼치기
+  const [showCreate, setShowCreate] = React.useState(false);
+  const [creating, setCreating] = React.useState<Draft>(() => emptyDraft());
+
+  // ✅ 인라인 수정: 동시에 1개만 편집
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+
+  // memo_id별 draft (수정값)
   const [edits, setEdits] = React.useState<Record<string, Draft>>({});
 
+  const canCreate = creating.assignee.trim().length > 0;
+
   React.useEffect(() => {
+    // 날짜/목록 바뀌면 편집 상태 초기화
     const next: Record<string, Draft> = {};
     for (const m of memos) {
       next[m.memo_id] = {
@@ -64,13 +71,16 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
       };
     }
     setEdits(next);
+
+    // 새로 열 때 UX: 목록 중심 유지
+    setShowCreate(false);
     setCreating(emptyDraft());
+    setEditingId(null);
   }, [date, memos]);
 
   async function createMemo() {
-    // ✅ 담당자 필수(클라이언트에서 선제 차단)
-    if (!creating.assignee.trim()) {
-      alert("담당자는 필수야.");
+    if (!canCreate) {
+      alert("담당자는 필수예요.");
       return;
     }
 
@@ -93,7 +103,9 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
         return;
       }
 
+      // ✅ 성공: 폼 접고 초기화 + 목록 리프레시
       setCreating(emptyDraft());
+      setShowCreate(false);
       await onChanged();
     } catch (e) {
       console.error(e);
@@ -107,11 +119,11 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
     const draft = edits[memo_id];
     if (!draft) return;
 
-    // ✅ 수정 시에도 담당자 비우는 것 방지(서버에서도 막지만 UX 개선)
-    if (!draft.assignee.trim()) {
-      alert("담당자는 필수야.");
-      return;
-    }
+    // (선택) 수정에서도 담당자 필수로 하고 싶다면 아래 주석 해제
+    // if (!draft.assignee.trim()) {
+    //   alert("담당자는 필수예요.");
+    //   return;
+    // }
 
     setSaving(true);
     try {
@@ -132,6 +144,7 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
         return;
       }
 
+      setEditingId(null);
       await onChanged();
     } finally {
       setSaving(false);
@@ -139,6 +152,9 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
   }
 
   async function removeMemo(memo_id: string) {
+    const ok = confirm("이 일정을 삭제할까요?");
+    if (!ok) return;
+
     setSaving(true);
     try {
       const res = await fetch(`/api/calendar-memo?memo_id=${encodeURIComponent(memo_id)}`, {
@@ -152,10 +168,144 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
         return;
       }
 
+      if (editingId === memo_id) setEditingId(null);
       await onChanged();
     } finally {
       setSaving(false);
     }
+  }
+
+  function CardView({ m }: { m: CalendarMemoRow }) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-fg/90">
+              {m.assignee || "(담당자 없음)"}{" "}
+              <span className="text-fg/50 font-normal">
+                · {m.meeting_type || "regular"}
+              </span>
+            </div>
+            <div className="mt-1 text-[12px] text-fg/70">
+              {m.gym_name ? m.gym_name : <span className="text-fg/40">암장명 없음</span>}
+              {m.max_people ? (
+                <span className="text-fg/50"> · 최대 {m.max_people}</span>
+              ) : null}
+            </div>
+            <div className="mt-2 text-[11px] text-muted-foreground">
+              업데이트: {m.updated_at || "-"}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={saving}
+              onClick={() => setEditingId(m.memo_id)}
+            >
+              수정
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={saving}
+              onClick={() => removeMemo(m.memo_id)}
+            >
+              삭제
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function CardEdit({ m }: { m: CalendarMemoRow }) {
+    const d = edits[m.memo_id] || emptyDraft();
+
+    return (
+      <div className="rounded-2xl border border-white/15 bg-white/7 p-4">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="text-sm font-semibold text-fg/90">일정 수정</div>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={saving}
+              onClick={() => setEditingId(null)}
+            >
+              취소
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={saving}
+              onClick={() => updateMemo(m.memo_id)}
+            >
+              저장
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              value={d.meeting_type}
+              onValueChange={(v) =>
+                setEdits((p) => ({ ...p, [m.memo_id]: { ...d, meeting_type: v } }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="모임유형" />
+              </SelectTrigger>
+              <SelectContent>
+                {MEETING_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Input
+              placeholder="최대 인원"
+              inputMode="numeric"
+              value={d.max_people}
+              onChange={(e) =>
+                setEdits((p) => ({ ...p, [m.memo_id]: { ...d, max_people: e.target.value } }))
+              }
+            />
+          </div>
+
+          <Input
+            placeholder="담당자"
+            value={d.assignee}
+            onChange={(e) =>
+              setEdits((p) => ({ ...p, [m.memo_id]: { ...d, assignee: e.target.value } }))
+            }
+          />
+
+          <Input
+            placeholder="암장명"
+            value={d.gym_name}
+            onChange={(e) =>
+              setEdits((p) => ({ ...p, [m.memo_id]: { ...d, gym_name: e.target.value } }))
+            }
+          />
+
+          <div className="mt-1 flex justify-end">
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={saving}
+              onClick={() => removeMemo(m.memo_id)}
+            >
+              삭제
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -164,16 +314,37 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
         <SheetHeader>
           <SheetTitle className="text-lg font-semibold">일정 메모</SheetTitle>
           <SheetDescription className="text-sm text-muted-foreground">
-            {date} · 셀에는 최대 2개만 표시되고, 전체는 여기서 관리해요.
+            {date} · 목록에서 수정/삭제하고, 필요할 때만 추가 폼을 펼쳐요.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-4 space-y-5">
-          {/* ✅ 새 일정 추가 */}
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        {/* ✅ 상단 액션: + 일정 추가 토글 */}
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            “+ 일정 추가”를 눌러 입력하세요.
+          </div>
+
+          <Button
+            variant={showCreate ? "outline" : "primary"}
+            size="sm"
+            onClick={() => setShowCreate((v) => !v)}
+            disabled={saving}
+          >
+            {showCreate ? "닫기" : "+ 일정 추가"}
+          </Button>
+        </div>
+
+        {/* ✅ 추가 폼(토글) */}
+        {showCreate ? (
+          <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="mb-3 flex items-center justify-between">
               <div className="font-semibold">새 일정 추가</div>
-              <Button variant="primary" size="sm" disabled={saving} onClick={createMemo}>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={saving || !canCreate}
+                onClick={createMemo}
+              >
                 추가
               </Button>
             </div>
@@ -197,8 +368,7 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                 </Select>
 
                 <Input
-                  className={INPUT_CLASS}
-                  placeholder="최대 인원"
+                  placeholder="최대 인원 (선택)"
                   inputMode="numeric"
                   value={creating.max_people}
                   onChange={(e) => setCreating((p) => ({ ...p, max_people: e.target.value }))}
@@ -206,121 +376,46 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
               </div>
 
               <Input
-                className={INPUT_CLASS}
                 placeholder="담당자 (필수)"
                 value={creating.assignee}
                 onChange={(e) => setCreating((p) => ({ ...p, assignee: e.target.value }))}
               />
+
               <Input
-                className={INPUT_CLASS}
-                placeholder="암장명"
+                placeholder="암장명 (선택)"
                 value={creating.gym_name}
                 onChange={(e) => setCreating((p) => ({ ...p, gym_name: e.target.value }))}
               />
+
+              {!canCreate ? (
+                <div className="text-[11px] text-fg/60">* 담당자는 필수예요.</div>
+              ) : null}
             </div>
           </div>
+        ) : null}
 
-          {/* ✅ 일정 목록 전체 */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="font-semibold">전체 일정 ({memos.length})</div>
-            </div>
-
-            {memos.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-muted-foreground">
-                등록된 일정이 없어요.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {memos.map((m) => {
-                  const d = edits[m.memo_id] || emptyDraft();
-                  return (
-                    <div key={m.memo_id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <div className="mb-3 flex items-center justify-between">
-                        <div className="text-sm text-muted-foreground">업데이트: {m.updated_at || "-"}</div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={saving}
-                            onClick={() => updateMemo(m.memo_id)}
-                          >
-                            저장
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            disabled={saving}
-                            onClick={() => removeMemo(m.memo_id)}
-                          >
-                            삭제
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <Select
-                            value={d.meeting_type}
-                            onValueChange={(v) =>
-                              setEdits((p) => ({ ...p, [m.memo_id]: { ...d, meeting_type: v } }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="모임유형" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {MEETING_TYPES.map((t) => (
-                                <SelectItem key={t.value} value={t.value}>
-                                  {t.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-
-                          <Input
-                            className={INPUT_CLASS}
-                            placeholder="최대 인원"
-                            inputMode="numeric"
-                            value={d.max_people}
-                            onChange={(e) =>
-                              setEdits((p) => ({
-                                ...p,
-                                [m.memo_id]: { ...d, max_people: e.target.value },
-                              }))
-                            }
-                          />
-                        </div>
-
-                        <Input
-                          className={INPUT_CLASS}
-                          placeholder="담당자 (필수)"
-                          value={d.assignee}
-                          onChange={(e) =>
-                            setEdits((p) => ({
-                              ...p,
-                              [m.memo_id]: { ...d, assignee: e.target.value },
-                            }))
-                          }
-                        />
-                        <Input
-                          className={INPUT_CLASS}
-                          placeholder="암장명"
-                          value={d.gym_name}
-                          onChange={(e) =>
-                            setEdits((p) => ({
-                              ...p,
-                              [m.memo_id]: { ...d, gym_name: e.target.value },
-                            }))
-                          }
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        {/* ✅ 전체 목록(기본 화면) */}
+        <div className="mt-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="text-base font-semibold">전체 일정</div>
+            <div className="text-xs text-fg/50">{memos.length}개</div>
           </div>
+
+          {memos.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-muted-foreground">
+              등록된 일정이 없어요.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {memos.map((m) =>
+                editingId === m.memo_id ? (
+                  <CardEdit key={m.memo_id} m={m} />
+                ) : (
+                  <CardView key={m.memo_id} m={m} />
+                ),
+              )}
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
