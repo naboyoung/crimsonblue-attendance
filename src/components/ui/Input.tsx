@@ -1,17 +1,25 @@
-import { cn } from "@/lib/cn";
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-export function Input({
-  className,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      className={cn(
-        "h-11 w-full rounded-2xl border border-border bg-card px-4 text-fg placeholder:text-muted " +
-          "outline-none transition focus:border-brand/50 focus:ring-2 focus:ring-brand/30",
-        className
-      )}
-      {...props}
-    />
-  );
-}
+export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
+
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, ...props }, ref) => {
+    return (
+      <input
+        ref={ref}
+        type={type}
+        className={cn(
+          "flex h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-fg",
+          "placeholder:text-fg/40",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-0",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
+
+Input.displayName = "Input";
