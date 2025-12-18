@@ -20,12 +20,19 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { date, meeting_type, assignee, gym_name, max_people } = body ?? {};
 
-  if (!date) return NextResponse.json({ error: "date is required (YYYY-MM-DD)" }, { status: 400 });
+  if (!date) {
+    return NextResponse.json({ error: "date is required (YYYY-MM-DD)" }, { status: 400 });
+  }
+
+  const assigneeStr = String(assignee ?? "").trim();
+  if (!assigneeStr) {
+    return NextResponse.json({ error: "assignee is required" }, { status: 400 });
+  }
 
   const res = await upsertCalendarMemo({
     date: String(date),
     meeting_type: String(meeting_type ?? ""),
-    assignee: String(assignee ?? ""),
+    assignee: assigneeStr, // ✅ trim된 값 사용
     gym_name: String(gym_name ?? ""),
     max_people: max_people ?? "",
   });
@@ -40,11 +47,19 @@ export async function PUT(req: Request) {
 
   if (!memo_id) return NextResponse.json({ error: "memo_id is required" }, { status: 400 });
 
+  // ✅ assignee를 수정하려는 경우엔 빈 값 방지
+  if (assignee !== undefined) {
+    const assigneeStr = String(assignee ?? "").trim();
+    if (!assigneeStr) {
+      return NextResponse.json({ error: "assignee cannot be empty" }, { status: 400 });
+    }
+  }
+
   await patchCalendarMemo({
     memo_id: String(memo_id),
     ...(meeting_type !== undefined ? { meeting_type: String(meeting_type) } : {}),
-    ...(assignee !== undefined ? { assignee: String(assignee) } : {}),
-    ...(gym_name !== undefined ? { gym_name: String(gym_name) } : {}),
+    ...(assignee !== undefined ? { assignee: String(assignee).trim() } : {}),
+    ...(gym_name !== undefined ? { gym_name: String(gym_name ?? "") } : {}),
     ...(max_people !== undefined ? { max_people } : {}),
   });
 

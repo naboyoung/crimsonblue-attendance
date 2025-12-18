@@ -24,7 +24,7 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   date: string;
   memos: CalendarMemoRow[];
-  onChanged: () => Promise<void> | void; // 저장/삭제 후 월 리프레시
+  onChanged: () => Promise<void> | void;
 };
 
 type Draft = {
@@ -44,15 +44,16 @@ function emptyDraft(): Draft {
   return { meeting_type: "regular", assignee: "", gym_name: "", max_people: "" };
 }
 
+// ✅ 바텀시트 반투명일 때도 입력이 잘 보이도록(로컬에서만 적용)
+const INPUT_CLASS = "bg-black/70 border-white/15 placeholder:text-fg/40";
+
 export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }: Props) {
   const [creating, setCreating] = React.useState<Draft>(() => emptyDraft());
   const [saving, setSaving] = React.useState(false);
 
-  // 수정용 로컬 상태 (memo_id별로 draft 보관)
   const [edits, setEdits] = React.useState<Record<string, Draft>>({});
 
   React.useEffect(() => {
-    // 날짜 바뀔 때 edit 초기화
     const next: Record<string, Draft> = {};
     for (const m of memos) {
       next[m.memo_id] = {
@@ -67,6 +68,12 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
   }, [date, memos]);
 
   async function createMemo() {
+    // ✅ 담당자 필수(클라이언트에서 선제 차단)
+    if (!creating.assignee.trim()) {
+      alert("담당자는 필수야.");
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await fetch("/api/calendar-memo", {
@@ -79,7 +86,6 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
         }),
       });
 
-      
       if (!res.ok) {
         const text = await res.text().catch(() => "");
         console.error("POST /api/calendar-memo failed:", res.status, text);
@@ -87,12 +93,11 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
         return;
       }
 
-
       setCreating(emptyDraft());
       await onChanged();
     } catch (e) {
-        console.error(e);
-        alert("추가 중 오류가 발생했어요. 콘솔 로그를 확인해줘.");
+      console.error(e);
+      alert("추가 중 오류가 발생했어요. 콘솔 로그를 확인해줘.");
     } finally {
       setSaving(false);
     }
@@ -102,9 +107,15 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
     const draft = edits[memo_id];
     if (!draft) return;
 
+    // ✅ 수정 시에도 담당자 비우는 것 방지(서버에서도 막지만 UX 개선)
+    if (!draft.assignee.trim()) {
+      alert("담당자는 필수야.");
+      return;
+    }
+
     setSaving(true);
     try {
-      await fetch("/api/calendar-memo", {
+      const res = await fetch("/api/calendar-memo", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -113,6 +124,14 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
           max_people: draft.max_people,
         }),
       });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        console.error("PUT /api/calendar-memo failed:", res.status, text);
+        alert(`저장 실패 (${res.status})\n${text}`);
+        return;
+      }
+
       await onChanged();
     } finally {
       setSaving(false);
@@ -122,9 +141,17 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
   async function removeMemo(memo_id: string) {
     setSaving(true);
     try {
-      await fetch(`/api/calendar-memo?memo_id=${encodeURIComponent(memo_id)}`, {
+      const res = await fetch(`/api/calendar-memo?memo_id=${encodeURIComponent(memo_id)}`, {
         method: "DELETE",
       });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        console.error("DELETE /api/calendar-memo failed:", res.status, text);
+        alert(`삭제 실패 (${res.status})\n${text}`);
+        return;
+      }
+
       await onChanged();
     } finally {
       setSaving(false);
@@ -170,6 +197,7 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                 </Select>
 
                 <Input
+                  className={INPUT_CLASS}
                   placeholder="최대 인원"
                   inputMode="numeric"
                   value={creating.max_people}
@@ -178,11 +206,13 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
               </div>
 
               <Input
-                placeholder="담당자"
+                className={INPUT_CLASS}
+                placeholder="담당자 (필수)"
                 value={creating.assignee}
                 onChange={(e) => setCreating((p) => ({ ...p, assignee: e.target.value }))}
               />
               <Input
+                className={INPUT_CLASS}
                 placeholder="암장명"
                 value={creating.gym_name}
                 onChange={(e) => setCreating((p) => ({ ...p, gym_name: e.target.value }))}
@@ -207,9 +237,7 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                   return (
                     <div key={m.memo_id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <div className="text-sm text-muted-foreground">
-                          업데이트: {m.updated_at || "-"}
-                        </div>
+                        <div className="text-sm text-muted-foreground">업데이트: {m.updated_at || "-"}</div>
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
@@ -251,27 +279,39 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                           </Select>
 
                           <Input
+                            className={INPUT_CLASS}
                             placeholder="최대 인원"
                             inputMode="numeric"
                             value={d.max_people}
                             onChange={(e) =>
-                              setEdits((p) => ({ ...p, [m.memo_id]: { ...d, max_people: e.target.value } }))
+                              setEdits((p) => ({
+                                ...p,
+                                [m.memo_id]: { ...d, max_people: e.target.value },
+                              }))
                             }
                           />
                         </div>
 
                         <Input
-                          placeholder="담당자"
+                          className={INPUT_CLASS}
+                          placeholder="담당자 (필수)"
                           value={d.assignee}
                           onChange={(e) =>
-                            setEdits((p) => ({ ...p, [m.memo_id]: { ...d, assignee: e.target.value } }))
+                            setEdits((p) => ({
+                              ...p,
+                              [m.memo_id]: { ...d, assignee: e.target.value },
+                            }))
                           }
                         />
                         <Input
+                          className={INPUT_CLASS}
                           placeholder="암장명"
                           value={d.gym_name}
                           onChange={(e) =>
-                            setEdits((p) => ({ ...p, [m.memo_id]: { ...d, gym_name: e.target.value } }))
+                            setEdits((p) => ({
+                              ...p,
+                              [m.memo_id]: { ...d, gym_name: e.target.value },
+                            }))
                           }
                         />
                       </div>

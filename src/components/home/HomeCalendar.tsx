@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { CalendarMemoSheet } from "@/components/home/CalendarMemoSheet";
 import type { MonthMemoMap } from "@/lib/types/calendarMemo";
 
-
 function pad2(n: number) {
   return String(n).padStart(2, "0");
 }
@@ -42,10 +41,9 @@ function isSameDay(a: Date, b: Date) {
 
 /**
  * ✅ 모임유형 dot 컬러 매핑
- * - 너희 프로젝트에 이미 쓰는 색/타입이 있다면, 여기만 “기존 상수”를 import 해서 바꿔 끼우면 됨.
+ * - 프로젝트에서 이미 쓰는 색이 있으면 여기만 교체
  */
 const MEETING_TYPE_DOT_CLASS: Record<string, string> = {
-  // 예시 (프로젝트 기존 색상에 맞게 수정)
   regular: "bg-blue-500",
   rental: "bg-red-500",
   etc: "bg-gray-400",
@@ -65,9 +63,37 @@ export function HomeCalendar() {
   const [loading, setLoading] = React.useState(false);
 
   const [sheetOpen, setSheetOpen] = React.useState(false);
-  const [selectedDate, setSelectedDate] = React.useState<string>(() =>
-    formatDate(new Date()),
-  );
+  const [selectedDate, setSelectedDate] = React.useState<string>(() => formatDate(new Date()));
+
+  // ✅ 롱프레스 타이머
+  const pressTimerRef = React.useRef<number | null>(null);
+  const pressedDateRef = React.useRef<string | null>(null);
+
+  function clearPressTimer() {
+    if (pressTimerRef.current) {
+      window.clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+    pressedDateRef.current = null;
+  }
+
+  function startLongPress(dateStr: string) {
+    clearPressTimer();
+    pressedDateRef.current = dateStr;
+
+    // 탭/터치 피드백으로 선택 강조는 즉시
+    setSelectedDate(dateStr);
+
+    pressTimerRef.current = window.setTimeout(() => {
+      if (pressedDateRef.current === dateStr) {
+        setSheetOpen(true);
+      }
+    }, 450);
+  }
+
+  function endLongPress() {
+    clearPressTimer();
+  }
 
   const monthStr = React.useMemo(() => formatMonth(cursorMonth), [cursorMonth]);
 
@@ -91,7 +117,6 @@ export function HomeCalendar() {
   const monthStart = React.useMemo(() => startOfMonth(cursorMonth), [cursorMonth]);
   const monthEnd = React.useMemo(() => endOfMonth(cursorMonth), [cursorMonth]);
 
-  // 그리드 시작(일요일) ~ 끝(토요일)
   const gridStart = React.useMemo(() => addDays(monthStart, -monthStart.getDay()), [monthStart]);
   const gridEnd = React.useMemo(() => addDays(monthEnd, 6 - monthEnd.getDay()), [monthEnd]);
 
@@ -106,11 +131,6 @@ export function HomeCalendar() {
   }, [gridStart, gridEnd]);
 
   const today = React.useMemo(() => new Date(), []);
-
-  const openEditor = (dateStr: string) => {
-    setSelectedDate(dateStr);
-    setSheetOpen(true);
-  };
 
   const onPrevMonth = () => {
     const d = new Date(cursorMonth);
@@ -159,23 +179,36 @@ export function HomeCalendar() {
           const inMonth = d.getMonth() === cursorMonth.getMonth();
           const memos = memoMap[dateStr] ?? [];
           const isToday = isSameDay(d, today);
+          const isSelected = selectedDate === dateStr;
 
+          // ✅ 표시 규칙
+          // - 1개: (● 담당자) / (  암장명)
+          // - 2개 이상: (● 담당자) 2줄 (+N 선택)
           const content =
             memos.length === 0 ? null : memos.length === 1 ? (
-              <div className="mt-2 flex items-start gap-2 text-[11px] leading-4 text-fg/80">
-                <Dot meetingType={memos[0].meeting_type} />
-                <div className="min-w-0 truncate">
-                  {memos[0].assignee} - {memos[0].gym_name} ({memos[0].max_people})
+              <div className="mt-2">
+                <div className="flex items-center gap-1 text-[10px] leading-tight text-fg/85">
+                  <Dot meetingType={memos[0].meeting_type} />
+                  <div className="min-w-0 truncate font-medium">{memos[0].assignee}</div>
+                </div>
+                <div className="pl-3 text-[10px] leading-tight text-fg/65 truncate">
+                  {memos[0].gym_name || ""}
                 </div>
               </div>
             ) : (
-              <div className="mt-2 space-y-1">
-                {memos.slice(0, 2).map((m, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-[11px] leading-4 text-fg/80">
+              <div className="mt-2 space-y-0.5">
+                {memos.slice(0, 2).map((m) => (
+                  <div
+                    key={m.memo_id}
+                    className="flex items-center gap-1 text-[10px] leading-tight text-fg/85"
+                  >
                     <Dot meetingType={m.meeting_type} />
-                    <div className="min-w-0 truncate">{m.assignee}</div>
+                    <div className="min-w-0 truncate font-medium">{m.assignee}</div>
                   </div>
                 ))}
+                {memos.length > 2 && (
+                  <div className="text-[10px] text-fg/50">+{memos.length - 2}</div>
+                )}
               </div>
             );
 
@@ -183,7 +216,16 @@ export function HomeCalendar() {
             <button
               key={dateStr}
               type="button"
-              onClick={() => openEditor(dateStr)}
+              // ✅ 탭 = 선택만
+              onClick={() => setSelectedDate(dateStr)}
+              // ✅ 롱프레스 = 바텀시트 오픈
+              onPointerDown={(e) => {
+                if (e.button !== 0) return;
+                startLongPress(dateStr);
+              }}
+              onPointerUp={endLongPress}
+              onPointerCancel={endLongPress}
+              onPointerLeave={endLongPress}
               className={[
                 "group rounded-2xl border p-3 text-left",
                 "min-h-[92px]",
@@ -194,12 +236,14 @@ export function HomeCalendar() {
                 "active:scale-[0.995]",
                 inMonth ? "" : "opacity-55",
                 isToday ? "ring-1 ring-brand/60 border-brand/40" : "",
+                // ✅ 선택 강조(탭 시)
+                isSelected ? "bg-white/10 border-white/25" : "",
               ].join(" ")}
             >
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold text-fg/90">{d.getDate()}</div>
                 {memos.length > 0 ? (
-                  <div className="text-[10px] text-fg/50">{memos.length}/2</div>
+                  <div className="text-[10px] text-fg/50">{memos.length}</div>
                 ) : (
                   <div className="text-[10px] text-fg/30 opacity-0 transition group-hover:opacity-100">
                     메모
