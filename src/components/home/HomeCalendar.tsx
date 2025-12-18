@@ -3,19 +3,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { CalendarMemoSheet } from "@/components/home/CalendarMemoSheet";
+import type { MonthMemoMap } from "@/lib/types/calendarMemo";
 
-type CalendarMemoRow = {
-  date: string;
-  slot: "1" | "2";
-  meeting_type: string;
-  assignee: string;
-  gym_name: string;
-  max_people: string;
-  updated_at: string;
-  is_deleted: string;
-};
-
-type MonthMemoMap = Record<string, CalendarMemoRow[]>;
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");

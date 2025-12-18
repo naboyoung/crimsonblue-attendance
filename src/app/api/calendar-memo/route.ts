@@ -1,42 +1,62 @@
 import { NextResponse } from "next/server";
 import {
-  listCalendarMemosByMonth,
-  upsertCalendarMemo,
   deleteCalendarMemo,
+  listCalendarMemosByMonth,
+  patchCalendarMemo,
+  upsertCalendarMemo,
 } from "@/lib/server/calendarMemoService";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const month = searchParams.get("month"); // YYYY-MM
-  if (!month) return NextResponse.json({ error: "month is required" }, { status: 400 });
+  if (!month) return NextResponse.json({ error: "month is required (YYYY-MM)" }, { status: 400 });
 
   const data = await listCalendarMemosByMonth(month);
   return NextResponse.json({ data });
 }
 
+// ✅ 생성
 export async function POST(req: Request) {
   const body = await req.json();
-  const { date, slot, meeting_type, assignee, gym_name, max_people } = body ?? {};
-  if (!date || !slot) return NextResponse.json({ error: "date, slot required" }, { status: 400 });
+  const { date, meeting_type, assignee, gym_name, max_people } = body ?? {};
 
-  await upsertCalendarMemo({
-    date,
-    slot: Number(slot),
-    meeting_type: meeting_type ?? "",
-    assignee: assignee ?? "",
-    gym_name: gym_name ?? "",
-    max_people: Number(max_people ?? 0),
+  if (!date) return NextResponse.json({ error: "date is required (YYYY-MM-DD)" }, { status: 400 });
+
+  const res = await upsertCalendarMemo({
+    date: String(date),
+    meeting_type: String(meeting_type ?? ""),
+    assignee: String(assignee ?? ""),
+    gym_name: String(gym_name ?? ""),
+    max_people: max_people ?? "",
+  });
+
+  return NextResponse.json({ ok: true, memo_id: res.memo_id });
+}
+
+// ✅ 수정
+export async function PUT(req: Request) {
+  const body = await req.json();
+  const { memo_id, meeting_type, assignee, gym_name, max_people } = body ?? {};
+
+  if (!memo_id) return NextResponse.json({ error: "memo_id is required" }, { status: 400 });
+
+  await patchCalendarMemo({
+    memo_id: String(memo_id),
+    ...(meeting_type !== undefined ? { meeting_type: String(meeting_type) } : {}),
+    ...(assignee !== undefined ? { assignee: String(assignee) } : {}),
+    ...(gym_name !== undefined ? { gym_name: String(gym_name) } : {}),
+    ...(max_people !== undefined ? { max_people } : {}),
   });
 
   return NextResponse.json({ ok: true });
 }
 
+// ✅ 삭제
 export async function DELETE(req: Request) {
   const { searchParams } = new URL(req.url);
-  const date = searchParams.get("date");
-  const slot = searchParams.get("slot");
-  if (!date || !slot) return NextResponse.json({ error: "date, slot required" }, { status: 400 });
+  const memo_id = searchParams.get("memo_id");
+  if (!memo_id) return NextResponse.json({ error: "memo_id is required" }, { status: 400 });
 
-  await deleteCalendarMemo(date, Number(slot) as 1 | 2);
+  await deleteCalendarMemo(String(memo_id));
   return NextResponse.json({ ok: true });
 }

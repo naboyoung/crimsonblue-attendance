@@ -1,99 +1,111 @@
-// src/lib/server/calendarMemoService.ts
-import { getRows, upsertRowByCompositeKey } from "./googleSheets";
+import { appendValues, nowKSTString, readSheetObjects, updateRowByKey } from "./googleSheets";
+import type { CalendarMemoRow } from "@/lib/types/calendarMemo";
 
-export type CalendarMemoRow = {
-  date: string;        // YYYY-MM-DD
-  slot: "1" | "2";     // 1 or 2
-  meeting_type: string;
-  assignee: string;
-  gym_name: string;
-  max_people: string;  // keep as string for sheets
-  updated_at: string;
-  is_deleted: string;  // "TRUE" | "FALSE"
-};
+export type CalendarMemoSlot = never; // (기존 타입 참조하던 곳 있으면 제거 권장)
 
-export type CalendarMemoSlot = 1 | 2;
-
-export type CalendarMemoInput = {
+export type UpsertCalendarMemoInput = {
+  memo_id?: string; // 있으면 수정, 없으면 생성
   date: string;
-  slot: CalendarMemoSlot;
   meeting_type: string;
   assignee: string;
   gym_name: string;
   max_people: number | string;
 };
 
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
+export type PatchCalendarMemoInput = {
+  memo_id: string;
+  meeting_type?: string;
+  assignee?: string;
+  gym_name?: string;
+  max_people?: number | string;
+};
+
+const SHEET_NAME = "CalendarMemo"; // ✅ 구글시트 탭 이름
+
+function toRowForAppend(input: UpsertCalendarMemoInput & { memo_id: string }): (string | number | null)[] {
+  return [
+    input.memo_id,
+    input.date,
+    input.meeting_type ?? "",
+    input.assignee ?? "",
+    input.gym_name ?? "",
+    String(input.max_people ?? ""),
+    nowKSTString(),
+    "FALSE",
+  ];
 }
 
-export function monthRange(month: string) {
-  // month: YYYY-MM
-  const [y, m] = month.split("-").map(Number);
-  const start = `${y}-${pad2(m)}-01`;
-  const endDate = new Date(y, m, 0); // last day of month
-  const end = `${y}-${pad2(m)}-${pad2(endDate.getDate())}`;
-  return { start, end };
+function normalizeRow(r: Record<string, string>): CalendarMemoRow {
+  return {
+    memo_id: String(r.memo_id ?? "").trim(),
+    date: String(r.date ?? "").trim(),
+    meeting_type: String(r.meeting_type ?? "").trim(),
+    assignee: String(r.assignee ?? "").trim(),
+    gym_name: String(r.gym_name ?? "").trim(),
+    max_people: String(r.max_people ?? "").trim(),
+    updated_at: String(r.updated_at ?? "").trim(),
+    is_deleted: String(r.is_deleted ?? "").trim() || "FALSE",
+  };
 }
 
-export async function listCalendarMemosByMonth(month: string) {
-  const { start, end } = monthRange(month);
-  const rows = await getRows<CalendarMemoRow>("CalendarMemo");
+export async function listCalendarMemosByMonth(month: string): Promise<Record<string, CalendarMemoRow[]>> {
+  // month: "YYYY-MM"
+  const rows = await readSheetObjects(`${SHEET_NAME}!A1:Z`);
+  const list = rows
+    .map(normalizeRow)
+    .filter((r) => r.memo_id)
+    .filter((r) => r.is_deleted !== "TRUE")
+    .filter((r) => r.date.startsWith(month));
 
-  const filtered = rows.filter((r) => {
-    if (!r?.date || !r?.slot) return false;
-    if (String(r.is_deleted).toUpperCase() === "TRUE") return false;
-    return r.date >= start && r.date <= end;
-  });
-
-  // date -> [slot1?, slot2?] in slot order
+  // date별 그룹핑
   const map: Record<string, CalendarMemoRow[]> = {};
-  for (const r of filtered) {
-    const key = r.date;
-    map[key] ??= [];
-    map[key].push(r);
+  for (const r of list) {
+    (map[r.date] ||= []).push(r);
   }
-  for (const key of Object.keys(map)) {
-    map[key].sort((a, b) => Number(a.slot) - Number(b.slot));
+
+  // ✅ 정렬: updated_at 오름차순(없으면 memo_id)
+  for (const date of Object.keys(map)) {
+    map[date].sort((a, b) => (a.updated_at || a.memo_id).localeCompare(b.updated_at || b.memo_id));
   }
+
   return map;
 }
 
-export async function upsertCalendarMemo(input: CalendarMemoInput) {
-  const now = new Date().toISOString();
-  const row: Partial<CalendarMemoRow> = {
-    date: input.date,
-    slot: String(input.slot) as "1" | "2",
-    meeting_type: input.meeting_type ?? "",
-    assignee: input.assignee ?? "",
-    gym_name: input.gym_name ?? "",
-    max_people: String(input.max_people ?? ""),
-    updated_at: now,
-    is_deleted: "FALSE",
-  };
+export async function upsertCalendarMemo(input: UpsertCalendarMemoInput): Promise<{ memo_id: string }> {
+  const memo_id = input.memo_id?.trim() || globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random()}`;
 
-  await upsertRowByCompositeKey(
-    "CalendarMemo",
-    [
-      { column: "date", value: input.date },
-      { column: "slot", value: String(input.slot) },
-    ],
-    row
-  );
+  // ✅ 수정
+  if (input.memo_id) {
+    await updateRowByKey(SHEET_NAME, "memo_id", memo_id, {
+      meeting_type: String(input.meeting_type ?? ""),
+      assignee: String(input.assignee ?? ""),
+      gym_name: String(input.gym_name ?? ""),
+      max_people: String(input.max_people ?? ""),
+      updated_at: nowKSTString(),
+      is_deleted: "FALSE",
+    });
+    return { memo_id };
+  }
 
-  return { ok: true };
+  // ✅ 생성(append)
+  await appendValues(`${SHEET_NAME}!A1`, [toRowForAppend({ ...input, memo_id })]);
+  return { memo_id };
 }
 
-export async function deleteCalendarMemo(date: string, slot: 1 | 2) {
-  const now = new Date().toISOString();
-  await upsertRowByCompositeKey(
-    "CalendarMemo",
-    [
-      { column: "date", value: date },
-      { column: "slot", value: String(slot) },
-    ],
-    { is_deleted: "TRUE", updated_at: now }
-  );
+export async function patchCalendarMemo(input: PatchCalendarMemoInput) {
+  const memo_id = input.memo_id.trim();
+  await updateRowByKey(SHEET_NAME, "memo_id", memo_id, {
+    ...(input.meeting_type !== undefined ? { meeting_type: String(input.meeting_type) } : {}),
+    ...(input.assignee !== undefined ? { assignee: String(input.assignee) } : {}),
+    ...(input.gym_name !== undefined ? { gym_name: String(input.gym_name) } : {}),
+    ...(input.max_people !== undefined ? { max_people: String(input.max_people) } : {}),
+    updated_at: nowKSTString(),
+  });
+}
 
-  return { ok: true };
+export async function deleteCalendarMemo(memo_id: string) {
+  await updateRowByKey(SHEET_NAME, "memo_id", memo_id, {
+    is_deleted: "TRUE",
+    updated_at: nowKSTString(),
+  });
 }
