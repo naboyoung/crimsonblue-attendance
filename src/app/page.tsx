@@ -1,5 +1,7 @@
 import { ThemeToggle } from "@/components/ThemeToggle";
 import LinkRow from "@/components/ui/LinkRow";
+import { HomeCalendar } from '@/components/home/HomeCalendar';
+
 
 export default function HomePage() {
   return (
@@ -19,7 +21,15 @@ export default function HomePage() {
         <div className="mt-4">
           <ThemeToggle />
         </div>
-
+        {/* 기존 콘텐츠가 있다면 위/아래에 유지 */}
+        
+        <section>
+          <h1 className="mb-3 text-lg font-semibold">
+            일정 관리
+          </h1>
+          <HomeCalendar />
+        </section>
+        
         {/* Menu */}
         <section className="mt-8">
           <div className="space-y-2">

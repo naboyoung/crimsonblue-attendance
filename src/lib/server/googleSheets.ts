@@ -21,11 +21,16 @@ function getSheetsClient(): SheetsClient {
   return google.sheets({ version: 'v4', auth });
 }
 
-export async function readValues(range: string) {
+function getSpreadsheetId(): string {
   const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
   if (!spreadsheetId) throw new Error('Missing GOOGLE_SHEETS_ID');
+  return spreadsheetId;
+}
 
+export async function readValues(range: string) {
+  const spreadsheetId = getSpreadsheetId();
   const sheets = getSheetsClient();
+
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range,
@@ -35,16 +40,40 @@ export async function readValues(range: string) {
 }
 
 export async function appendValues(range: string, values: (string | number | null)[][]) {
-  const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
-  if (!spreadsheetId) throw new Error('Missing GOOGLE_SHEETS_ID');
-
+  const spreadsheetId = getSpreadsheetId();
   const sheets = getSheetsClient();
+
   await sheets.spreadsheets.values.append({
     spreadsheetId,
     range,
     valueInputOption: 'RAW',
     requestBody: { values },
   });
+}
+
+/**
+ * ✅ 추가: 특정 range에 값 업데이트 (행 단위 업데이트/업서트에 필요)
+ */
+export async function updateValues(range: string, values: (string | number | null)[][]) {
+  const spreadsheetId = getSpreadsheetId();
+  const sheets = getSheetsClient();
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range,
+    valueInputOption: 'RAW',
+    requestBody: { values },
+  });
+}
+
+/**
+ * ✅ 추가: sheetName(예: "Members", "CalendarMemo") 전체를 (header+rows) 형태로 읽기
+ * - header 포함 2차원 배열 반환
+ */
+export async function getSheetMatrix(sheetName: string): Promise<(string | number | null)[][]> {
+  // Google Sheets API에서 range에 sheetName만 주면 해당 시트의 "사용된 범위"를 가져온다
+  const values = await readValues(sheetName);
+  return values as (string | number | null)[][];
 }
 
 /**
@@ -72,6 +101,16 @@ export async function readSheetObjects(range: string): Promise<Record<string, st
       return obj;
     });
 }
+/**
+ * ✅ 추가: 시트 이름만 주면 헤더 기반 객체 배열로 반환 (calendarMemoService 호환용)
+ * - 내부적으로 readSheetObjects를 재사용
+ * - 범위는 넉넉하게 A1:Z 로 잡음
+ */
+export async function getRows<T extends Record<string, any>>(sheetName: string): Promise<T[]> {
+  const objs = await readSheetObjects(`${sheetName}!A1:Z`);
+  return objs as T[];
+}
+
 
 // ✅ 기존 코드 호환용 alias(기존 attendanceService.ts가 깨지지 않도록)
 export async function appendRows(range: string, rows: (string | number | null)[][]) {
@@ -94,9 +133,9 @@ export function nowKSTString(): string {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
 }
 
-
 // ------------------------------
-// ✅ 추가: updateRowByKey
+// ✅ 기존: updateRowByKey
+// (내부에서 getSheetsClient 재사용하도록만 정리)
 // ------------------------------
 type SheetObject = Record<string, any>;
 
@@ -104,7 +143,7 @@ type SheetObject = Record<string, any>;
  * Members 같은 시트에서
  * 1) header 기준으로 keyColumnName/keyValue row를 찾고
  * 2) 기존 row를 객체로 만든 뒤 patch를 merge
- * 3) header 순서대로 한 줄(values)을 재구성해 update
+ * 3) header 순서대로 한 줄을 재구성해 update
  */
 export async function updateRowByKey(
   sheetName: string,
@@ -112,20 +151,8 @@ export async function updateRowByKey(
   keyValue: string,
   patch: Record<string, any>,
 ) {
-  const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
-  if (!spreadsheetId) {
-    throw new Error('GOOGLE_SHEETS_ID is missing');
-  }
-
-  const auth = new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    },
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-  });
-
-  const sheets = google.sheets({ version: 'v4', auth });
+  const spreadsheetId = getSpreadsheetId();
+  const sheets = getSheetsClient();
 
   // 1) 시트 전체 읽기 (header + data)
   const readRes = await sheets.spreadsheets.values.get({
@@ -181,6 +208,97 @@ export async function updateRowByKey(
     valueInputOption: 'RAW',
     requestBody: { values: [newRowValues] },
   });
+}
+
+/**
+ * ✅ 추가: 복합키(date+slot 같은) 기준으로 upsert
+ * - header 기반으로 row를 찾아 patch 적용 후 업데이트
+ * - 없으면 header 순서에 맞춰 새 row를 만들어 append
+ *
+ * 예)
+ * await upsertRowByCompositeKey("CalendarMemo",
+ *   [{column:"date", value:"2025-12-18"}, {column:"slot", value:"1"}],
+ *   { meeting_type:"regular", assignee:"보영", gym_name:"크블", max_people:20, updated_at: nowKSTString(), is_deleted:"FALSE" }
+ * )
+ */
+export async function upsertRowByCompositeKey(
+  sheetName: string,
+  keys: Array<{ column: string; value: string }>,
+  patch: Record<string, any>,
+) {
+  const spreadsheetId = getSpreadsheetId();
+  const sheets = getSheetsClient();
+
+  const matrix = await getSheetMatrix(sheetName);
+  if (!matrix || matrix.length === 0) {
+    throw new Error(`Sheet "${sheetName}" is empty. Please add header row first.`);
+  }
+
+  const header = (matrix[0] ?? []).map((h) => String(h ?? '').trim());
+  if (header.length === 0) {
+    throw new Error(`Sheet "${sheetName}" has no header row.`);
+  }
+
+  // key column indexes
+  const keyInfos = keys.map((k) => {
+    const idx = header.indexOf(k.column);
+    if (idx === -1) {
+      throw new Error(`Header "${k.column}" not found in sheet "${sheetName}"`);
+    }
+    return { ...k, idx };
+  });
+
+  const dataRows = matrix.slice(1);
+
+  // find matching row
+  let foundDataIndex = -1; // 0-based within dataRows
+  for (let i = 0; i < dataRows.length; i++) {
+    const row = dataRows[i] ?? [];
+    const ok = keyInfos.every((k) => String(row[k.idx] ?? '').trim() === String(k.value).trim());
+    if (ok) {
+      foundDataIndex = i;
+      break;
+    }
+  }
+
+  // helper: build row values following header order
+  const buildRowValues = (baseRow: (string | number | null)[]) => {
+    const next = Array.from({ length: header.length }, (_, i) => baseRow[i] ?? '');
+
+    // ensure keys always set
+    for (const k of keyInfos) {
+      next[k.idx] = k.value;
+    }
+
+    // apply patch
+    for (const [col, val] of Object.entries(patch)) {
+      const idx = header.indexOf(col);
+      if (idx === -1) continue; // ignore unknown columns
+      next[idx] = val === null || val === undefined ? '' : val;
+    }
+
+    return next;
+  };
+
+  if (foundDataIndex === -1) {
+    // append new row
+    const emptyBase = new Array(header.length).fill('');
+    const newRowValues = buildRowValues(emptyBase);
+    await appendValues(`${sheetName}!A:Z`, [newRowValues]);
+    return { created: true };
+  }
+
+  // update existing row
+  const currentRow = dataRows[foundDataIndex] ?? [];
+  const newRowValues = buildRowValues(currentRow);
+
+  // convert to sheet row number (header=1, first data row=2)
+  const sheetRowNumber = foundDataIndex + 2;
+  const endColumnLetter = columnNumberToLetter(header.length);
+  const range = `${sheetName}!A${sheetRowNumber}:${endColumnLetter}${sheetRowNumber}`;
+
+  await updateValues(range, [newRowValues]);
+  return { created: false };
 }
 
 /** 1 -> A, 2 -> B, ... 26 -> Z, 27 -> AA ... */
