@@ -63,7 +63,7 @@ export default function AttendanceConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 pb-16"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

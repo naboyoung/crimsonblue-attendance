@@ -38,8 +38,8 @@ type Member = {
 
 type RoleFilter = '전체' | '운영진' | '정회원' | '준회원';
 
-type SortKey = 'name' | 'score';
-type SortDir = 'asc' | 'desc';
+export type SortKey = 'name' | 'score';
+export type SortDir = 'asc' | 'desc';
 
 type MemberCardRow = {
   memberId: string;
@@ -50,6 +50,7 @@ type MemberCardRow = {
   halfScore: number;
   displayScore: number;
   displayPeriodLabel: '이번분기' | '이번반기';
+  gymCount: number; // 방문 암장 수(표시기간 기준)
 };
 
 type MemberAttendanceRow = {
@@ -84,6 +85,16 @@ function parseDateYMD(d: string) {
 
   if (!y || !m || !day) return null;
   return new Date(y, m - 1, day);
+}
+
+function formatDateDisplay(d: string) {
+  const dt = parseDateYMD(d);
+  if (!dt) return String(d ?? '').trim();
+
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${y}.${m}.${day}`;
 }
 
 function parseJoinYearMonth(join: string) {
@@ -137,8 +148,13 @@ function getJoinDateRaw(m: Member) {
   return String((m as any).join_date ?? (m as any).joinDate ?? '').trim();
 }
 
-/* ---------------- 컴포넌트 ---------------- */
-export default function MemberView() {
+/* ---------------- Props ---------------- */
+type MemberViewProps = {
+  sortKey: SortKey;
+  sortDir: SortDir;
+};
+
+export default function MemberView({ sortKey, sortDir }: MemberViewProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -150,10 +166,8 @@ export default function MemberView() {
   const [onlyNewbie, setOnlyNewbie] = useState(false);
   const [onlyUnderScore, setOnlyUnderScore] = useState(false);
 
-  const [sortKey, setSortKey] = useState<SortKey>('name');
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
-
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
+  const [showAllLogs, setShowAllLogs] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -345,9 +359,16 @@ export default function MemberView() {
     const rf = roleFilter;
 
     const base: MemberCardRow[] = activeMembers.map((m) => {
-      const quarterScore = memberQuarterData.get(m.memberId)?.scoreSum ?? 0;
-      const halfScore = memberHalfData.get(m.memberId)?.scoreSum ?? 0;
+      const quarterBucket = memberQuarterData.get(m.memberId);
+      const halfBucket = memberHalfData.get(m.memberId);
+
+      const quarterScore = quarterBucket?.scoreSum ?? 0;
+      const halfScore = halfBucket?.scoreSum ?? 0;
+
       const displayScore = getDisplayScore(m.role, quarterScore, halfScore);
+
+      const displayRows = m.role === '준회원' ? (halfBucket?.rows ?? []) : (quarterBucket?.rows ?? []);
+      const gymCount = new Set(displayRows.map((r) => String(r.gymName ?? '').trim()).filter(Boolean)).size;
 
       return {
         memberId: m.memberId,
@@ -358,6 +379,7 @@ export default function MemberView() {
         halfScore,
         displayScore,
         displayPeriodLabel: getDisplayPeriodLabel(m.role),
+        gymCount,
       };
     });
 
@@ -402,17 +424,13 @@ export default function MemberView() {
 
   const expandedRows = useMemo(() => {
     if (!expandedMemberId || !expandedMember) return [];
-    if (expandedMember.role === '준회원') {
-      return memberHalfData.get(expandedMemberId)?.rows ?? [];
-    }
+    if (expandedMember.role === '준회원') return memberHalfData.get(expandedMemberId)?.rows ?? [];
     return memberQuarterData.get(expandedMemberId)?.rows ?? [];
   }, [expandedMemberId, expandedMember, memberQuarterData, memberHalfData]);
 
   const expandedTotal = useMemo(() => {
     if (!expandedMemberId || !expandedMember) return 0;
-    if (expandedMember.role === '준회원') {
-      return memberHalfData.get(expandedMemberId)?.scoreSum ?? 0;
-    }
+    if (expandedMember.role === '준회원') return memberHalfData.get(expandedMemberId)?.scoreSum ?? 0;
     return memberQuarterData.get(expandedMemberId)?.scoreSum ?? 0;
   }, [expandedMemberId, expandedMember, memberQuarterData, memberHalfData]);
 
@@ -422,39 +440,17 @@ export default function MemberView() {
   }, [expandedMember]);
 
   const toggleExpand = (memberId: string) => {
-    setExpandedMemberId((prev) => (prev === memberId ? null : memberId));
-  };
-
-  const toggleSortDir = () => {
-    setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    setExpandedMemberId((prev) => {
+      const next = prev === memberId ? null : memberId;
+      setShowAllLogs(false);
+      return next;
+    });
   };
 
   return (
     <div className="space-y-3">
-      {/* 헤더 영역: CardSection이 title을 담당 → 여기선 정렬 컨트롤만 */}
-      <div className="flex items-center justify-end gap-2">
-        <select
-          value={sortKey}
-          onChange={(e) => setSortKey(e.target.value as SortKey)}
-          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-fg"
-        >
-          <option value="name">이름순</option>
-          <option value="score">점수순</option>
-        </select>
-
-        <button
-          type="button"
-          onClick={toggleSortDir}
-          title={sortDir === 'asc' ? '오름차순' : '내림차순'}
-          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-fg transition hover:bg-white/10 active:scale-[0.99]"
-        >
-          {sortDir === 'asc' ? '▲' : '▼'}
-        </button>
-      </div>
-
       {/* 필터 영역 */}
       <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-        {/* 이름 검색 */}
         <div className="grid gap-2">
           <label className="text-sm text-fg/70">이름 검색</label>
           <input
@@ -465,7 +461,6 @@ export default function MemberView() {
           />
         </div>
 
-        {/* Role 필터 */}
         <div className="grid gap-2">
           <label className="text-sm text-fg/70">Role 필터</label>
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -490,7 +485,6 @@ export default function MemberView() {
           </div>
         </div>
 
-        {/* 추가 필터 */}
         <div className="grid gap-2">
           <label className="text-sm text-fg/70">추가 필터</label>
           <div className="flex flex-wrap gap-2">
@@ -528,7 +522,6 @@ export default function MemberView() {
         </div>
       </div>
 
-      {/* 상태 */}
       {loading && (
         <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-fg/70">
           불러오는 중...
@@ -541,7 +534,6 @@ export default function MemberView() {
         </div>
       )}
 
-      {/* 결과 */}
       {!loading && !error && (
         <div className="space-y-2">
           {filteredCards.length === 0 ? (
@@ -569,7 +561,9 @@ export default function MemberView() {
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-fg/60">{m.displayPeriodLabel}</div>
+                        <div className="text-xs text-fg/60">
+                          {m.displayPeriodLabel} · 방문 암장 {m.gymCount}곳
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -591,7 +585,7 @@ export default function MemberView() {
                   </button>
 
                   {expanded && expandedMember && expandedMember.memberId === m.memberId && (
-                    <div className="border-t border-white/10 p-4 space-y-3">
+                    <div className="space-y-3 border-t border-white/10 p-4">
                       <div className="space-y-1">
                         <div className="text-sm font-semibold text-fg">
                           {expandedMember.name} · {expandedMember.role}
@@ -604,31 +598,54 @@ export default function MemberView() {
                           {expandedPeriodLabel} 출석 기록이 없습니다. (0점)
                         </div>
                       ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-sm">
-                            <thead className="text-xs text-fg/60">
-                              <tr className="border-b border-white/10">
-                                <th className="py-2 text-center">암장명</th>
-                                <th className="py-2 text-center">날짜</th>
-                                <th className="py-2 text-center">참석유형</th>
-                                <th className="py-2 text-center">참석형태</th>
-                                <th className="py-2 text-center">점수</th>
-                                <th className="py-2 text-center">작성자</th>
-                              </tr>
-                            </thead>
-                            <tbody className="text-xs">
-                              {expandedRows.map((r, idx) => (
-                                <tr key={idx} className="border-b border-white/10">
-                                  <td className="py-2 text-center text-fg">{r.gymName}</td>
-                                  <td className="py-2 text-center text-fg/80">{r.date}</td>
-                                  <td className="py-2 text-center text-fg/80">{r.preregistered}</td>
-                                  <td className="py-2 text-center text-fg/80">{r.attendanceType}</td>
-                                  <td className="py-2 text-center text-fg">{r.score}</td>
-                                  <td className="py-2 text-center text-fg/80">{r.writer || '-'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                        <div className="space-y-2">
+                          {(() => {
+                            const LOG_PREVIEW_LIMIT = 10;
+                            const visibleRows = showAllLogs ? expandedRows : expandedRows.slice(0, LOG_PREVIEW_LIMIT);
+                            const hasMore = expandedRows.length > LOG_PREVIEW_LIMIT;
+
+                            return (
+                              <>
+                                {visibleRows.map((r, idx) => {
+                                  const score = r.score ?? 0;
+                                  const scoreText = score > 0 ? `+${score}` : `${score}`;
+
+                                  const secondary = [
+                                    formatDateDisplay(r.date),
+                                    String(r.preregistered ?? '').trim(),
+                                    String(r.attendanceType ?? '').trim(),
+                                    r.writer ? `작성자: ${String(r.writer).trim()}` : '',
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' · ');
+
+                                  return (
+                                    <div
+                                      key={`${r.gymName}-${r.date}-${idx}`}
+                                      className="rounded-xl border border-white/10 bg-white/5 px-3 py-3"
+                                    >
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="text-sm font-semibold text-fg">{r.gymName}</div>
+                                        <div className="shrink-0 text-sm font-semibold text-fg">{scoreText}</div>
+                                      </div>
+
+                                      <div className="mt-1 text-xs text-fg/60">{secondary}</div>
+                                    </div>
+                                  );
+                                })}
+
+                                {hasMore && !showAllLogs && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowAllLogs(true)}
+                                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-fg/80 transition hover:bg-white/10"
+                                  >
+                                    더보기 ({expandedRows.length - LOG_PREVIEW_LIMIT}개)
+                                  </button>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
 

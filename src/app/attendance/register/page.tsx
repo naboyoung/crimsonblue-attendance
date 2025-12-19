@@ -131,8 +131,8 @@ export default function AttendanceRegisterPage() {
     const gname = String(gymName ?? '').trim();
     const w = String(writer ?? '').trim();
 
-    if (!sid) return '회차(session_id)는 필수입니다.';
-    if (!/^\d+$/.test(sid)) return '회차(session_id)는 숫자만 입력해주세요.';
+    if (!sid) return '회차는 필수입니다.';
+    if (!/^\d+$/.test(sid)) return '회차는 숫자만 입력해주세요.';
     if (!date) return '날짜는 필수입니다.';
     if (!meetingType) return '모임유형은 필수입니다.';
     if (!gname) return '암장명은 필수입니다.';
