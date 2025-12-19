@@ -242,7 +242,7 @@ export default function AttendanceRegisterPage() {
           </div>
         )}
 
-        <CardSection title="기본 정보" description="모임 정보와 출석 방식을 설정해요.">
+        <CardSection title="기본 정보" description="모임 등록에 필요한 기본 정보를 입력해 주세요.">
           <AttendanceBasicInfoSection
             date={date}
             meetingType={meetingType}
@@ -262,7 +262,7 @@ export default function AttendanceRegisterPage() {
           />
         </CardSection>
 
-        <CardSection title="참석자" description="참석자 추가/삭제 및 출석 상태를 확인해요.">
+        <CardSection title="출석자 정보" description="출석자의 참여 유형과 참석 형태를 선택해 주세요.">
           <AttendanceAttendeeSection
             attendeeInput={attendeeInput}
             attendees={attendees}
@@ -274,13 +274,15 @@ export default function AttendanceRegisterPage() {
 
         <CardSection
           title="최종 확인"
-          description="입력한 내용을 확인한 뒤 등록해요."
+          description="입력한 내용은 구글시트에 기록됩니다."
           footer={
             <button
               type="button"
               className={[
-                'w-full rounded-xl px-4 py-3 text-sm font-semibold transition active:scale-[0.99]',
-                canOpenConfirm ? 'bg-brand text-white shadow-soft hover:opacity-90' : 'bg-white/10 text-fg/40',
+                'h-12 w-full rounded-md text-sm font-semibold transition active:scale-[0.98]',
+                canOpenConfirm
+                 ? 'bg-slate-900 text-white shadow-soft hover:bg-slate-800'
+                 : 'border border-slate-200 bg-white text-slate-400 cursor-not-allowed',
               ].join(' ')}
               onClick={handleOpenConfirm}
               disabled={!canOpenConfirm}
@@ -290,7 +292,7 @@ export default function AttendanceRegisterPage() {
           }
         >
           {/* 필요 없으면 이 children은 비워도 됨 (footer만 써도 OK) */}
-          <div className="text-sm text-muted-foreground">등록 버튼을 눌러 확인 모달로 이동해요.</div>
+          <div className="text-sm text-muted-foreground"></div>
         </CardSection>
 
         <AttendanceConfirmModal

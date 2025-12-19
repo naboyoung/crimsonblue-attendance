@@ -21,8 +21,8 @@ export default function TopTabs({ tabs }: Props) {
   const pathname = usePathname();
 
   return (
-    <div className="mb-4">
-      <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-1">
+    <div className="mb-2">
+      <div className="mt-1 rounded-2xl border border-white/10 bg-white/5 p-1">
         <div className="flex gap-1">
           {tabs.map((t) => {
             const active = isTabActive(pathname, t.href);

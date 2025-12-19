@@ -8,13 +8,15 @@ export default function AttendanceOverviewLayout({
 }) {
   return (
     <PageShell>
-      <TopTabs
-        tabs={[
-          { label: '세션별', href: '/attendance/overview/session' },
-          { label: '회원별', href: '/attendance/overview/member' },
-        ]}
-      />
-      {children}
+      <div className="space-y-3">
+        <TopTabs
+          tabs={[
+            { label: '세션별', href: '/attendance/overview/session' },
+            { label: '회원별', href: '/attendance/overview/member' },
+          ]}
+        />
+        {children}
+      </div>
     </PageShell>
   );
 }

@@ -1,5 +1,7 @@
+"use client";
+
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cx, FIELD_BASE } from "./fieldStyles";
 
 export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
@@ -9,13 +11,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <input
         ref={ref}
         type={type}
-        className={cn(
-          "flex h-10 w-full rounded-xl border border-white/15 bg-black/50 px-3 py-2 text-sm text-fg",
-          "placeholder:text-fg/40",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-0",
-          "disabled:cursor-not-allowed disabled:opacity-50",
-          className
-        )}
+        className={cx(FIELD_BASE, className)}
         {...props}
       />
     );

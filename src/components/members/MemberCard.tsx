@@ -7,6 +7,7 @@ export type Member = {
   member_id?: string;
   name?: string;
   role?: Role | string;
+  
   is_active?: string;
   school?: string;
   gender?: string;
@@ -17,6 +18,7 @@ export type Member = {
   join_date?: string;
   last_updated_at?: string;
   comment?: string;
+
 };
 
 function badgeClass(kind: "primary" | "muted" | "newbie") {

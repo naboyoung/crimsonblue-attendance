@@ -27,18 +27,20 @@ type Props = {
   onChanged: () => Promise<void> | void; // 저장/삭제 후 월 리프레시
 };
 
-type Draft = {
-  meeting_type: string;
-  assignee: string;
-  gym_name: string;
-  max_people: string;
-};
-
 const MEETING_TYPES = [
   { value: "regular", label: "정기" },
   { value: "rental", label: "대관" },
   { value: "etc", label: "기타" },
 ] as const;
+
+type MeetingTypeValue = (typeof MEETING_TYPES)[number]["value"];
+
+type Draft = {
+  meeting_type: MeetingTypeValue;
+  assignee: string;
+  gym_name: string;
+  max_people: string;
+};
 
 function typeLabel(v: string) {
   return MEETING_TYPES.find((t) => t.value === v)?.label ?? v ?? "";
@@ -83,7 +85,7 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
     const next: Record<string, Draft> = {};
     for (const m of memos) {
       next[m.memo_id] = {
-        meeting_type: m.meeting_type || "regular",
+        meeting_type: (m.meeting_type as MeetingTypeValue) || "regular",
         assignee: m.assignee || "",
         gym_name: m.gym_name || "",
         max_people: m.max_people || "",
@@ -128,8 +130,8 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
       setCreating(emptyDraft());
       setCreateOpen(false);
       await onChanged();
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
       alert("추가 중 오류가 발생했어요. 콘솔 로그를 확인해줘.");
     } finally {
       setSaving(false);
@@ -215,7 +217,7 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
     setEdits((p) => ({
       ...p,
       [memo_id]: {
-        meeting_type: m.meeting_type || "regular",
+        meeting_type: ((m.meeting_type as MeetingTypeValue) || "regular"),
         assignee: m.assignee || "",
         gym_name: m.gym_name || "",
         max_people: m.max_people || "",
@@ -232,7 +234,7 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
           "rounded-t-3xl",
           "bg-white text-black", // ✅ 시트 본체 불투명 흰색
           "border border-black/10",
-          "px-4 pb-6 pt-4"
+          "px-4 pb-6 pt-4",
         ].join(" ")}
       >
         {/* Header */}
@@ -291,7 +293,9 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                 <div className="grid grid-cols-2 gap-3">
                   <Select
                     value={creating.meeting_type}
-                    onValueChange={(v) => setCreating((p) => ({ ...p, meeting_type: v }))}
+                    onValueChange={(v: MeetingTypeValue) =>
+                      setCreating((p) => ({ ...p, meeting_type: v }))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="모임유형" />
@@ -308,7 +312,9 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                   <Input
                     placeholder="담당자 *"
                     value={creating.assignee}
-                    onChange={(e) => setCreating((p) => ({ ...p, assignee: e.target.value }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setCreating((p) => ({ ...p, assignee: e.target.value }))
+                    }
                   />
                 </div>
 
@@ -317,13 +323,17 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                   <Input
                     placeholder="암장명 (선택)"
                     value={creating.gym_name}
-                    onChange={(e) => setCreating((p) => ({ ...p, gym_name: e.target.value }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setCreating((p) => ({ ...p, gym_name: e.target.value }))
+                    }
                   />
                   <Input
                     placeholder="최대 인원 (선택)"
                     inputMode="numeric"
                     value={creating.max_people}
-                    onChange={(e) => setCreating((p) => ({ ...p, max_people: e.target.value }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setCreating((p) => ({ ...p, max_people: e.target.value }))
+                    }
                   />
                 </div>
 
@@ -367,7 +377,9 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                             type="button"
                             className="rounded-lg px-2 py-1 text-black/60 hover:bg-black/5 hover:text-black"
                             aria-label="메뉴"
-                            onClick={() => setOpenMenuId((cur) => (cur === m.memo_id ? null : m.memo_id))}
+                            onClick={() =>
+                              setOpenMenuId((cur) => (cur === m.memo_id ? null : m.memo_id))
+                            }
                           >
                             ⋯
                           </button>
@@ -410,8 +422,11 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                           <div className="grid grid-cols-2 gap-3">
                             <Select
                               value={d.meeting_type}
-                              onValueChange={(v) =>
-                                setEdits((p) => ({ ...p, [m.memo_id]: { ...d, meeting_type: v } }))
+                              onValueChange={(v: MeetingTypeValue) =>
+                                setEdits((p) => ({
+                                  ...p,
+                                  [m.memo_id]: { ...d, meeting_type: v },
+                                }))
                               }
                             >
                               <SelectTrigger>
@@ -429,8 +444,11 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                             <Input
                               placeholder="담당자 *"
                               value={d.assignee}
-                              onChange={(e) =>
-                                setEdits((p) => ({ ...p, [m.memo_id]: { ...d, assignee: e.target.value } }))
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                setEdits((p) => ({
+                                  ...p,
+                                  [m.memo_id]: { ...d, assignee: e.target.value },
+                                }))
                               }
                             />
                           </div>
@@ -439,16 +457,22 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                             <Input
                               placeholder="암장명 (선택)"
                               value={d.gym_name}
-                              onChange={(e) =>
-                                setEdits((p) => ({ ...p, [m.memo_id]: { ...d, gym_name: e.target.value } }))
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                setEdits((p) => ({
+                                  ...p,
+                                  [m.memo_id]: { ...d, gym_name: e.target.value },
+                                }))
                               }
                             />
                             <Input
                               placeholder="최대 인원 (선택)"
                               inputMode="numeric"
                               value={d.max_people}
-                              onChange={(e) =>
-                                setEdits((p) => ({ ...p, [m.memo_id]: { ...d, max_people: e.target.value } }))
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                setEdits((p) => ({
+                                  ...p,
+                                  [m.memo_id]: { ...d, max_people: e.target.value },
+                                }))
                               }
                             />
                           </div>

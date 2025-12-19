@@ -1,5 +1,7 @@
 'use client';
 
+import * as React from 'react';
+
 type AttendanceConfirmPayload = {
   date: string;
   sessionId: string;
@@ -22,6 +24,15 @@ type Props = {
   payload: AttendanceConfirmPayload;
 };
 
+// ✅ A안: meetingType 뱃지 색상
+function meetingTypeBadgeClass(meetingType: string) {
+  const t = String(meetingType ?? '').trim();
+  if (t === '정기모임') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  if (t === '대관행사') return 'bg-blue-50 text-blue-700 border-blue-200';
+  if (t === '기타') return 'bg-slate-100 text-slate-700 border-slate-200';
+  return 'bg-slate-100 text-slate-700 border-slate-200';
+}
+
 export default function AttendanceConfirmModal({
   open,
   onClose,
@@ -29,60 +40,175 @@ export default function AttendanceConfirmModal({
   submitting,
   payload,
 }: Props) {
+  // ESC 닫기
+  React.useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-md rounded-md bg-white p-4 space-y-4">
-        <h2 className="text-lg font-bold">출석 등록 확인</h2>
+  const memo = String(payload.description ?? '').trim();
+  const hasMemo = memo.length > 0;
 
-        <div className="space-y-1 text-sm">
-          <p><b>날짜:</b> {payload.date}</p>
-          <p><b>회차:</b> {payload.sessionId}</p>
-          <p><b>모임 유형:</b> {payload.meetingType}</p>
-          <p><b>암장:</b> {payload.gymName}</p>
-          <p><b>작성자:</b> {payload.writer}</p>
-          {payload.description && (
-            <p><b>메모:</b> {payload.description}</p>
+  // ✅ A안: 참석자 요약
+  const total = payload.attendees.length;
+  const normal = payload.attendees.filter((a) => a.attendanceType === '정상').length;
+  const late = payload.attendees.filter((a) => a.attendanceType === '지각').length;
+  const absent = payload.attendees.filter((a) => a.attendanceType === '불참').length;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      {/* ✅ A안: Bottom Sheet */}
+      <div
+        className="w-full max-w-md rounded-t-3xl border border-slate-200 bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-4 pt-4">
+          <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-slate-200" />
+
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <div className="text-lg font-semibold text-slate-900">출석 등록 확인</div>
+              <div className="text-sm text-slate-600">아래 내용으로 등록할까요?</div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={submitting}
+              className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 border-t border-slate-200" />
+
+        {/* Body */}
+        <div className="max-h-[70vh] overflow-y-auto px-4 py-4">
+          {/* 요약 영역 */}
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <div className="text-xs text-slate-500">날짜</div>
+                <div className="text-sm font-semibold text-slate-900">{payload.date}</div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-xs text-slate-500">회차</div>
+                <div className="text-sm font-semibold text-slate-900">{payload.sessionId}회</div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={[
+                  'rounded-full border px-2 py-0.5 text-xs font-semibold',
+                  meetingTypeBadgeClass(payload.meetingType),
+                ].join(' ')}
+              >
+                {payload.meetingType}
+              </span>
+              <div className="text-sm text-slate-700">{payload.gymName}</div>
+            </div>
+
+            <div className="text-xs text-slate-500">작성자: {payload.writer}</div>
+
+            {hasMemo && (
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                <div className="text-xs font-semibold text-slate-700">메모</div>
+                <div className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{memo}</div>
+              </div>
+            )}
+          </div>
+
+          <div className="my-4 border-t border-slate-200" />
+
+          {/* ✅ 참석자 요약 + 목록 */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-slate-900">참석자 {total}명</div>
+            <div className="text-xs text-slate-600">
+              정상 {normal} · 지각 {late} · 불참 {absent}
+            </div>
+          </div>
+
+          {total === 0 ? (
+            <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+              참석자가 없습니다. 닫고 참석자를 추가해주세요.
+            </div>
+          ) : (
+            <div className="mt-3 overflow-hidden rounded-md border border-slate-200 bg-white">
+              <div className="max-h-60 overflow-y-auto">
+                <table className="w-full table-fixed text-sm">
+                  <thead className="bg-slate-50 text-slate-600">
+                    <tr className="border-b border-slate-200">
+                      <th className="sticky top-0 z-10 w-[40%] bg-slate-50 px-3 py-2 text-center text-xs font-semibold">
+                        이름
+                      </th>
+                      <th className="sticky top-0 z-10 w-[30%] bg-slate-50 px-3 py-2 text-center text-xs font-semibold">
+                        유형
+                      </th>
+                      <th className="sticky top-0 z-10 w-[30%] bg-slate-50 px-3 py-2 text-center text-xs font-semibold">
+                        형태
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-slate-800">
+                    {payload.attendees.map((a, idx) => (
+                      <tr key={idx} className="border-b border-slate-100 last:border-b-0">
+                        <td className="px-3 py-2 text-center font-medium text-slate-900 truncate">
+                          {a.name}
+                        </td>
+                        <td className="px-3 py-2 text-center text-slate-700">{a.preregistered}</td>
+                        <td className="px-3 py-2 text-center text-slate-700">{a.attendanceType}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </div>
 
-        <div className="border rounded-md max-h-48 overflow-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-2 py-1 text-left">이름</th>
-                <th className="px-2 py-1 text-left">유형</th>
-                <th className="px-2 py-1 text-left">형태</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payload.attendees.map((a, idx) => (
-                <tr key={idx} className="border-t">
-                  <td className="px-2 py-1">{a.name}</td>
-                  <td className="px-2 py-1">{a.preregistered}</td>
-                  <td className="px-2 py-1">{a.attendanceType}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Footer */}
+        <div className="border-t border-slate-200 px-4 py-3">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={submitting}
+              className="h-11 flex-1 rounded-md border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              취소
+            </button>
 
-        <div className="flex gap-2 pt-2">
-          <button
-            onClick={onClose}
-            disabled={submitting}
-            className="flex-1 rounded-md border px-3 py-2 text-sm"
-          >
-            취소
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={submitting}
-            className="flex-1 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {submitting ? '저장 중...' : '최종 등록'}
-          </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={submitting || total === 0}
+              className={[
+                'h-11 flex-1 rounded-md text-sm font-semibold transition active:scale-[0.98]',
+                submitting || total === 0
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  : 'bg-brand text-white shadow-soft hover:opacity-90',
+              ].join(' ')}
+              title={total === 0 ? '참석자를 추가해주세요' : undefined}
+            >
+              {submitting ? '저장 중…' : '최종 등록'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
