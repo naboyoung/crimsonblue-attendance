@@ -171,22 +171,6 @@ export default function MembersManagePage() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="pt-6 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={goBack}
-          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
-        >
-          ←
-        </button>
-        <h1 className="text-xl font-bold text-zinc-900">회원정보 관리</h1>
-      </div>
-
-      <p className="mt-1 text-xs text-zinc-500">
-        기존 회원의 정보만 수정할 수 있습니다.
-      </p>
-
       {/* Mode Tabs */}
       <div className="mt-4">
         <ManageModeTabs mode={mode} onChange={onChangeMode} />

@@ -235,8 +235,6 @@ export default function AttendanceRegisterPage() {
   // -----------------------------
   return (
     <div className="min-h-screen bg-white">
-      <MobileHeader title="출석 등록" />
-
       <main className="space-y-3 p-4">
         {validationError && (
           <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">

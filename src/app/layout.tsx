@@ -1,4 +1,5 @@
 import "./globals.css";
+import BottomNav from "@/components/layout/BottomNav";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -7,7 +8,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
       </head>
-      <body>{children}</body>
+      <body className="min-h-screen pb-[72px]">
+        {children}
+        <BottomNav />
+      </body>
     </html>
   );
 }

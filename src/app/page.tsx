@@ -29,32 +29,6 @@ export default function HomePage() {
           </h1>
           <HomeCalendar />
         </section>
-        
-        {/* Menu */}
-        <section className="mt-8">
-          <div className="space-y-2">
-            <LinkRow
-              href="/attendance/register"
-              title="출석 등록"
-              description="모임 정보 입력 + 출석자 명단 등록"
-            />
-            <LinkRow
-              href="/attendance/overview"
-              title="출석 현황"
-              description="세션별 / 멤버별"
-            />
-            <LinkRow
-              href="/members/lookup"
-              title="회원정보 조회"
-              description="회원 기본 정보 조회"
-            />
-            <LinkRow
-              href="/members/manage"
-              title="회원정보 관리"
-              description="등급/상태변경, 개인정보 수정"
-            />
-          </div>
-        </section>
 
         {/* Footer */}
         <footer className="mt-10 text-center text-xs text-muted">

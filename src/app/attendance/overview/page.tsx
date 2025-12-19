@@ -11,8 +11,6 @@ export default function AttendanceOverviewPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <MobileHeader title="출석 현황" />
-
       <main className="space-y-3 p-4">
         {/* 탭 버튼 */}
         <div className="grid grid-cols-2 gap-2">

@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Sheet = DialogPrimitive.Root;
@@ -17,7 +16,8 @@ const SheetOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/50 backdrop-blur-sm",
+      // ✅ 덜 어둡게 + 블러 약하게 (원하면 /25~40 사이에서 조절)
+      "fixed inset-0 z-50 bg-black/35 backdrop-blur-[2px]",
       className
     )}
     {...props}
@@ -34,38 +34,64 @@ const sideClasses: Record<SheetSide, string> = {
   right: "inset-y-0 right-0 h-full w-3/4 sm:max-w-sm border-l animate-in slide-in-from-right",
 };
 
+type SheetContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+  side?: SheetSide;
+  /** ✅ 특정 시트에서만 overlay 톤 바꾸고 싶을 때 */
+  overlayClassName?: string;
+  /** ✅ bottom일 때 드래그 핸들 보여줄지 */
+  showHandle?: boolean;
+};
+
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { side?: SheetSide }
->(({ side = "right", className, children, ...props }, ref) => (
-  <SheetPortal>
-    <SheetOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed z-50 bg-background shadow-lg outline-none",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out",
-        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "rounded-t-2xl", // bottom sheet 느낌
-        sideClasses[side],
-        className
-      )}
-      {...props}
-    >
-      {children}
-      <SheetClose
-        className={cn(
-          "absolute right-4 top-4 rounded-sm opacity-70 transition-opacity",
-          "hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-          "disabled:pointer-events-none data-[state=open]:bg-secondary"
-        )}
-        aria-label="Close"
-      >
-        <X className="h-4 w-4" />
-      </SheetClose>
-    </DialogPrimitive.Content>
-  </SheetPortal>
-));
+  SheetContentProps
+>(
+  (
+    {
+      side = "right",
+      className,
+      children,
+      overlayClassName,
+      showHandle,
+      ...props
+    },
+    ref
+  ) => {
+    const shouldShowHandle = (showHandle ?? true) && side === "bottom";
+
+    return (
+      <SheetPortal>
+        {/* ✅ Overlay: 시트별 커스텀 가능 */}
+        <SheetOverlay className={overlayClassName} />
+
+        <DialogPrimitive.Content
+          ref={ref}
+          className={cn(
+            // ✅ 바텀시트 본체는 불투명 유지
+            "fixed z-50 bg-background shadow-lg outline-none",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            // ✅ bottom만 둥글게 (다른 방향 시트는 기본값 유지)
+            side === "bottom" ? "rounded-t-3xl" : "",
+            sideClasses[side],
+            className
+          )}
+          {...props}
+        >
+          {/* ✅ Drag Handle (표시만, 제스처는 나중에) */}
+          {shouldShowHandle ? (
+            <div aria-hidden className="pt-3">
+              <div className="mx-auto h-1 w-10 rounded-full bg-foreground/20" />
+            </div>
+          ) : null}
+
+          {children}
+
+        </DialogPrimitive.Content>
+      </SheetPortal>
+    );
+  }
+);
 SheetContent.displayName = DialogPrimitive.Content.displayName;
 
 function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
