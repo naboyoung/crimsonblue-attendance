@@ -49,17 +49,26 @@ function getQuarter(m0: number) {
   return Math.floor(m0 / 3) + 1;
 }
 
-// ✅ 추가: meetingType 뱃지 색상 매핑
+// ✅ meetingType 뱃지 색상 매핑 (다크모드/브랜드 기준)
 function meetingTypeBadgeClass(meetingType: string) {
   const t = String(meetingType ?? '').trim();
 
-  if (t === '정기모임') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if (t === '대관행사') return 'bg-blue-50 text-blue-700 border-blue-200';
-  if (t === '기타') return 'bg-slate-100 text-slate-700 border-slate-200';
+  if (t === '정기모임') {
+    return 'border-white/10 bg-brand/20 text-fg';
+  }
 
-  // 예상치 못한 값 fallback
-  return 'bg-slate-100 text-slate-700 border-slate-200';
+  if (t === '대관행사') {
+    return 'border-white/10 bg-blue-500/20 text-fg';
+  }
+
+  if (t === '기타') {
+    return 'border-white/10 bg-white/10 text-fg/80';
+  }
+
+  // fallback (예상치 못한 값)
+  return 'border-white/10 bg-white/10 text-fg/80';
 }
+
 
 export default function SessionView() {
   /* ---------- state ---------- */
@@ -163,27 +172,31 @@ export default function SessionView() {
   /* ---------- render ---------- */
   return (
     <div className="space-y-3">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <div className="text-base font-semibold">Session View</div>
+      {/* 헤더: CardSection이 title을 제공하므로, 여기서는 정렬 버튼만 우측 배치 */}
+      <div className="flex items-center justify-end">
         {period === '전체' && (
-          <button onClick={toggleSort} className="rounded-md border px-2 py-1 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={toggleSort}
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-fg transition hover:bg-white/10 active:scale-[0.99]"
+          >
             회차 {sortOrder === '역회차순' ? '▼' : '▲'}
           </button>
         )}
       </div>
 
       {/* 기간 필터 */}
-      <div className="flex gap-2 overflow-x-auto">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {periodOptions.map((p) => (
           <button
             key={p}
+            type="button"
             onClick={() => setPeriod(p)}
             className={[
-              'rounded-full border px-3 py-1 text-xs font-semibold',
+              'shrink-0 rounded-full border px-3 py-1 text-xs font-semibold transition',
               period === p
-                ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                : 'border-slate-200 bg-white text-slate-700',
+                ? 'border-white/10 bg-brand/15 text-fg'
+                : 'border-white/10 bg-white/5 text-fg/70 hover:bg-white/10 hover:text-fg',
             ].join(' ')}
           >
             {p}
@@ -192,44 +205,48 @@ export default function SessionView() {
       </div>
 
       {/* 상태 */}
-      {loading && <div className="text-sm">불러오는 중...</div>}
+      {loading && <div className="text-sm text-fg/70">불러오는 중...</div>}
       {error && <div className="text-sm text-red-600">{error}</div>}
 
-      {/* ✅ Empty State */}
+      {/* Empty State */}
       {!loading && !error && displaySessions.length === 0 && (
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-          <div className="font-semibold">표시할 출석 기록이 없습니다.</div>
-          <div className="mt-1 text-xs text-slate-600">
-            선택한 기간에 등록된 모임이 없어요. <span className="font-semibold">출석 등록</span>에서 먼저 등록하거나,
-            기간 필터를 <span className="font-semibold">전체</span>로 변경해보세요.
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-fg/80">
+          <div className="font-semibold text-fg">표시할 출석 기록이 없습니다.</div>
+          <div className="mt-1 text-xs text-fg/70">
+            선택한 기간에 등록된 모임이 없어요. <span className="font-semibold text-fg">출석 등록</span>에서 먼저
+            등록하거나, 기간 필터를 <span className="font-semibold text-fg">전체</span>로 변경해보세요.
           </div>
         </div>
       )}
 
-      {/* ✅ 변경: 내부 스크롤 영역 */}
+      {/* 내부 스크롤 영역 */}
       {!loading && !error && displaySessions.length > 0 && (
         <div className="max-h-[70vh] space-y-3 overflow-auto pr-1">
           {displaySessions.map((s) => {
             const expanded = expandedSessionId === s.sessionId;
 
             return (
-              <div key={s.sessionId} className="rounded-md border bg-white">
-                <button className="w-full space-y-1 p-4 text-left" onClick={() => toggleExpand(s.sessionId)}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      {/* ✅ 변경: sessionId 뱃지 + 날짜 텍스트 */}
+              <div key={s.sessionId} className="rounded-2xl border border-white/10 bg-white/5">
+                <button
+                  type="button"
+                  className="w-full space-y-1 p-4 text-left transition hover:bg-white/5"
+                  onClick={() => toggleExpand(s.sessionId)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      {/* sessionId 배지 + 날짜 */}
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                        <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-xs font-semibold text-fg">
                           {s.sessionId}회
                         </span>
-                        <div className="text-sm font-semibold">{s.date}</div>
+                        <div className="text-sm font-semibold text-fg">{s.date}</div>
                       </div>
 
-                      <div className="text-sm text-slate-700">{s.gymName}</div>
+                      <div className="mt-1 truncate text-sm text-fg/80">{s.gymName}</div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {/* ✅ 변경: meetingType 값에 따라 색 변경 */}
+                    <div className="flex shrink-0 items-center gap-2">
+                      {/* meetingType 배지: 기존 함수 유지 */}
                       <span
                         className={[
                           'rounded-full border px-2 py-0.5 text-xs font-semibold',
@@ -238,35 +255,35 @@ export default function SessionView() {
                       >
                         {s.meetingType}
                       </span>
-                      <span className="text-xs">{expanded ? '▲' : '▼'}</span>
+                      <span className="text-xs text-fg/70">{expanded ? '▲' : '▼'}</span>
                     </div>
                   </div>
 
-                  <div className="text-xs text-slate-500">작성자: {s.writer}</div>
+                  <div className="text-xs text-fg/60">작성자: {s.writer}</div>
 
                   {/* 요약 */}
-                  <div className="mt-1 text-sm font-semibold">총 출석자 {s.totalCount}명</div>
-                  <div className="text-xs text-slate-600">
+                  <div className="mt-1 text-sm font-semibold text-fg">총 출석자 {s.totalCount}명</div>
+                  <div className="text-xs text-fg/70">
                     정상 {s.normalCount} · 지각 {s.lateCount} · 불참 {s.absentCount}
                   </div>
                 </button>
 
                 {expanded && (
-                  <div className="border-t p-4">
+                  <div className="border-t border-white/10 p-4">
                     <table className="w-full text-sm">
-                      <thead className="text-xs text-slate-500">
+                      <thead className="text-xs text-fg/60">
                         <tr>
-                          <th className="text-left">이름</th>
-                          <th>참석유형</th>
-                          <th>참석형태</th>
+                          <th className="text-left font-semibold">이름</th>
+                          <th className="font-semibold">참석유형</th>
+                          <th className="font-semibold">참석형태</th>
                         </tr>
                       </thead>
                       <tbody>
                         {s.attendees.map((a, i) => (
-                          <tr key={i} className="border-t">
-                            <td className="py-1">{a.name}</td>
-                            <td className="text-center">{a.preregistered}</td>
-                            <td className="text-center">{a.attendanceType}</td>
+                          <tr key={i} className="border-t border-white/10">
+                            <td className="py-2 text-fg">{a.name}</td>
+                            <td className="text-center text-fg/80">{a.preregistered}</td>
+                            <td className="text-center text-fg/80">{a.attendanceType}</td>
                           </tr>
                         ))}
                       </tbody>

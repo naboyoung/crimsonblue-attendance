@@ -71,7 +71,7 @@ export default function AttendanceBasicInfoSection({
           inputMode="numeric"
           value={sessionId}
           onChange={(e) => onSessionIdChange(e.target.value.replace(/[^\d]/g, ''))}
-          placeholder="예: 27"
+          placeholder="예: 123"
           className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
         />
       </div>

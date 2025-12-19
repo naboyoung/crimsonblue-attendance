@@ -39,6 +39,14 @@ function isSameDay(a: Date, b: Date) {
   );
 }
 
+function isSunday(d: Date) {
+  return d.getDay() === 0;
+}
+
+function isSaturday(d: Date) {
+  return d.getDay() === 6;
+}
+
 /**
  * ✅ 모임유형 dot 컬러 매핑
  * - 프로젝트에서 이미 쓰는 색이 있으면 여기만 교체
@@ -147,8 +155,8 @@ export function HomeCalendar() {
   return (
     <div className="w-full">
       {/* Header */}
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="mt-5 mb-3 flex flex-col items-center gap-1">
+        <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={onPrevMonth}>
             ◀
           </Button>
@@ -160,7 +168,7 @@ export function HomeCalendar() {
           </Button>
         </div>
 
-        <div className="text-sm text-muted-foreground">{loading ? "불러오는 중…" : ""}</div>
+        <div className="text-xs text-muted-foreground">{loading ? "불러오는 중…" : ""}</div>
       </div>
 
       {/* Week Header */}
@@ -234,21 +242,20 @@ export function HomeCalendar() {
               onPointerLeave={endLongPress}
               className={[
                 "group rounded-2xl border px-2 py-2 text-left",
-                "min-h-[96px]",
-                "flex flex-col justify-start",
+                "min-h-[92px]",
                 "transition",
                 "bg-white/5 backdrop-blur",
                 "border-white/10",
-                "hover:bg-white/8 hover:border-white/15",
+                "hover:bg-white/10 hover:border-white/20",
                 "active:scale-[0.995]",
                 inMonth ? "" : "opacity-55",
-                isToday ? "ring-1 ring-brand/60 border-brand/40" : "",
+                isToday ? "border-brand/50 ring-1 ring-brand/40 bg-brand/5" : "",
                 // ✅ 선택 강조(탭 시)
                 isSelected ? "bg-white/10 border-white/25" : "",
               ].join(" ")}
             >
               <div className="flex items-start justify-between h-[20px]">
-                <div className="text-sm font-semibold leading-none text-fg/90">{d.getDate()}</div>
+                <div className={["text-sm font-semibold leading-none text-fg/90", isToday ? "text-brand":isSunday(d) ? "text-red-500":isSaturday(d) ? "text-red-500":"text-fg/90",].join(" ")}>{d.getDate()}</div>
 
                 {/* ✅ 우측 영역은 항상 동일 폭 */}
                 <div className="w-4 text-right text-[10px] text-fg/50">

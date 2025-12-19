@@ -1,8 +1,8 @@
 'use client';
 
+import CardSection from '@/components/ui/CardSection';
+import PageShell from '@/components/layout/PageShell';
 import { useEffect, useMemo, useState } from 'react';
-import MobileHeader from '@/components/layout/MobileHeader';
-
 import AttendanceBasicInfoSection from '@/components/attendance/AttendanceBasicInfoSection';
 import AttendanceAttendeeSection from '@/components/attendance/AttendanceAttendeeSection';
 import AttendanceConfirmModal from '@/components/attendance/AttendanceConfirmModal';
@@ -234,51 +234,64 @@ export default function AttendanceRegisterPage() {
   // 렌더
   // -----------------------------
   return (
-    <div className="min-h-screen bg-white">
-      <main className="space-y-3 p-4">
+    <PageShell>
+      <div className="space-y-3">
         {validationError && (
           <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {validationError}
           </div>
         )}
 
-        <AttendanceBasicInfoSection
-          date={date}
-          meetingType={meetingType}
-          gymName={gymName}
-          writer={writer}
-          description={description}
-          sessionId={sessionId}
-          onDateChange={setDate}
-          onMeetingTypeChange={setMeetingType}
-          onGymNameChange={setGymName}
-          onWriterChange={setWriter}
-          onDescriptionChange={setDescription}
-          onSessionIdChange={setSessionId}
-          writerOptions={writerOptions}
-          recentSessionId={recentSessionId}
-          gymOptions={gymOptions}
-        />
+        <CardSection title="기본 정보" description="모임 정보와 출석 방식을 설정해요.">
+          <AttendanceBasicInfoSection
+            date={date}
+            meetingType={meetingType}
+            gymName={gymName}
+            writer={writer}
+            description={description}
+            sessionId={sessionId}
+            onDateChange={setDate}
+            onMeetingTypeChange={setMeetingType}
+            onGymNameChange={setGymName}
+            onWriterChange={setWriter}
+            onDescriptionChange={setDescription}
+            onSessionIdChange={setSessionId}
+            writerOptions={writerOptions}
+            recentSessionId={recentSessionId}
+            gymOptions={gymOptions}
+          />
+        </CardSection>
 
-        <AttendanceAttendeeSection
-          attendeeInput={attendeeInput}
-          attendees={attendees}
-          onAttendeeInputChange={setAttendeeInput}
-          onAttendeesChange={setAttendees}
-          memberOptions={memberOptions}
-        />
+        <CardSection title="참석자" description="참석자 추가/삭제 및 출석 상태를 확인해요.">
+          <AttendanceAttendeeSection
+            attendeeInput={attendeeInput}
+            attendees={attendees}
+            onAttendeeInputChange={setAttendeeInput}
+            onAttendeesChange={setAttendees}
+            memberOptions={memberOptions}
+          />
+        </CardSection>
 
-        <button
-          type="button"
-          className={[
-            'w-full rounded-md px-4 py-3 text-sm font-semibold',
-            canOpenConfirm ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500',
-          ].join(' ')}
-          onClick={handleOpenConfirm}
-          disabled={!canOpenConfirm}
+        <CardSection
+          title="최종 확인"
+          description="입력한 내용을 확인한 뒤 등록해요."
+          footer={
+            <button
+              type="button"
+              className={[
+                'w-full rounded-xl px-4 py-3 text-sm font-semibold transition active:scale-[0.99]',
+                canOpenConfirm ? 'bg-brand text-white shadow-soft hover:opacity-90' : 'bg-white/10 text-fg/40',
+              ].join(' ')}
+              onClick={handleOpenConfirm}
+              disabled={!canOpenConfirm}
+            >
+              등록하기
+            </button>
+          }
         >
-          등록하기
-        </button>
+          {/* 필요 없으면 이 children은 비워도 됨 (footer만 써도 OK) */}
+          <div className="text-sm text-muted-foreground">등록 버튼을 눌러 확인 모달로 이동해요.</div>
+        </CardSection>
 
         <AttendanceConfirmModal
           open={confirmOpen}
@@ -301,7 +314,7 @@ export default function AttendanceRegisterPage() {
               })),
           }}
         />
-      </main>
-    </div>
+      </div>
+    </PageShell>
   );
 }

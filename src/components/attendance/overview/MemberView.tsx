@@ -431,42 +431,43 @@ export default function MemberView() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="text-base font-semibold">Member View</div>
+      {/* 헤더 영역: CardSection이 title을 담당 → 여기선 정렬 컨트롤만 */}
+      <div className="flex items-center justify-end gap-2">
+        <select
+          value={sortKey}
+          onChange={(e) => setSortKey(e.target.value as SortKey)}
+          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-fg"
+        >
+          <option value="name">이름순</option>
+          <option value="score">점수순</option>
+        </select>
 
-        <div className="flex items-center gap-2">
-          <select
-            value={sortKey}
-            onChange={(e) => setSortKey(e.target.value as SortKey)}
-            className="rounded-md border border-slate-200 px-2 py-1 text-xs"
-          >
-            <option value="name">이름순</option>
-            <option value="score">점수순</option>
-          </select>
-          <button
-            type="button"
-            onClick={toggleSortDir}
-            className="rounded-md border border-slate-200 px-2 py-1 text-xs"
-            title={sortDir === 'asc' ? '오름차순' : '내림차순'}
-          >
-            {sortDir === 'asc' ? '▲' : '▼'}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={toggleSortDir}
+          title={sortDir === 'asc' ? '오름차순' : '내림차순'}
+          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-fg transition hover:bg-white/10 active:scale-[0.99]"
+        >
+          {sortDir === 'asc' ? '▲' : '▼'}
+        </button>
       </div>
 
-      <section className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+      {/* 필터 영역 */}
+      <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+        {/* 이름 검색 */}
         <div className="grid gap-2">
-          <label className="text-sm text-slate-600">이름 검색</label>
+          <label className="text-sm text-fg/70">이름 검색</label>
           <input
             value={nameQuery}
             onChange={(e) => setNameQuery(e.target.value)}
             placeholder="이름을 입력하세요"
-            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm text-fg placeholder:text-fg/50"
           />
         </div>
 
+        {/* Role 필터 */}
         <div className="grid gap-2">
-          <label className="text-sm text-slate-600">Role 필터</label>
+          <label className="text-sm text-fg/70">Role 필터</label>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {(['전체', '운영진', '정회원', '준회원'] as RoleFilter[]).map((r) => {
               const active = roleFilter === r;
@@ -476,10 +477,10 @@ export default function MemberView() {
                   type="button"
                   onClick={() => setRoleFilter(r)}
                   className={[
-                    'shrink-0 rounded-full border px-3 py-1 text-xs font-semibold',
+                    'shrink-0 rounded-full border px-3 py-1 text-xs font-semibold transition',
                     active
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                      : 'border-slate-200 bg-white text-slate-700',
+                      ? 'border-white/10 bg-brand/20 text-fg'
+                      : 'border-white/10 bg-white/10 text-fg/70 hover:bg-white/15 hover:text-fg',
                   ].join(' ')}
                 >
                   {r}
@@ -489,17 +490,18 @@ export default function MemberView() {
           </div>
         </div>
 
+        {/* 추가 필터 */}
         <div className="grid gap-2">
-          <label className="text-sm text-slate-600">추가 필터</label>
+          <label className="text-sm text-fg/70">추가 필터</label>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setOnlyNewbie((p) => !p)}
               className={[
-                'rounded-full border px-3 py-1 text-xs font-semibold',
+                'rounded-full border px-3 py-1 text-xs font-semibold transition',
                 onlyNewbie
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                  : 'border-slate-200 bg-white text-slate-700',
+                  ? 'border-white/10 bg-indigo-500/20 text-fg'
+                  : 'border-white/10 bg-white/10 text-fg/70 hover:bg-white/15 hover:text-fg',
               ].join(' ')}
             >
               신입(6개월)
@@ -509,35 +511,41 @@ export default function MemberView() {
               type="button"
               onClick={() => setOnlyUnderScore((p) => !p)}
               className={[
-                'rounded-full border px-3 py-1 text-xs font-semibold',
+                'rounded-full border px-3 py-1 text-xs font-semibold transition',
                 onlyUnderScore
-                  ? 'border-rose-600 bg-rose-50 text-rose-700'
-                  : 'border-slate-200 bg-white text-slate-700',
+                  ? 'border-white/10 bg-rose-500/20 text-fg'
+                  : 'border-white/10 bg-white/10 text-fg/70 hover:bg-white/15 hover:text-fg',
               ].join(' ')}
             >
               점수 미달자
             </button>
           </div>
 
-          <div className="text-xs text-slate-500">
-            * 운영진/정회원: {MIN_QUARTER_SCORE_BY_ROLE.정회원}점 이상(분기), 준회원: {MIN_HALF_SCORE_FOR_JUNIOR}점 이상(반기)
+          <div className="text-xs text-fg/60">
+            * 운영진/정회원: {MIN_QUARTER_SCORE_BY_ROLE.정회원}점 이상(분기), 준회원:{' '}
+            {MIN_HALF_SCORE_FOR_JUNIOR}점 이상(반기)
           </div>
         </div>
-      </section>
+      </div>
 
+      {/* 상태 */}
       {loading && (
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-fg/70">
           불러오는 중...
         </div>
       )}
+
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+          {error}
+        </div>
       )}
 
+      {/* 결과 */}
       {!loading && !error && (
-        <section className="space-y-2">
+        <div className="space-y-2">
           {filteredCards.length === 0 ? (
-            <div className="rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-fg/70">
               조건에 해당하는 회원이 없습니다.
             </div>
           ) : (
@@ -545,80 +553,78 @@ export default function MemberView() {
               const expanded = expandedMemberId === m.memberId;
 
               return (
-                <div key={m.memberId} className="rounded-md border border-slate-200 bg-white">
-                  <button type="button" className="w-full text-left p-4" onClick={() => toggleExpand(m.memberId)}>
-                    <div className="flex items-start justify-between">
+                <div key={m.memberId} className="rounded-2xl border border-white/10 bg-white/5">
+                  <button
+                    type="button"
+                    className="w-full p-4 text-left transition hover:bg-white/5"
+                    onClick={() => toggleExpand(m.memberId)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
-                        {/* ✅ 변경: 이름 우측에 신입 뱃지 배치 */}
                         <div className="flex items-center gap-2">
-                          <div className="text-sm font-semibold text-slate-900">{m.name}</div>
+                          <div className="text-sm font-semibold text-fg">{m.name}</div>
                           {(isNewbieMember.get(m.memberId) ?? false) && (
-                            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700">
+                            <span className="rounded-full border border-white/10 bg-indigo-500/20 px-2 py-0.5 text-xs text-fg">
                               신입
                             </span>
                           )}
                         </div>
-
-                        <div className="text-xs text-slate-500">{m.displayPeriodLabel}</div>
+                        <div className="text-xs text-fg/60">{m.displayPeriodLabel}</div>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">{m.role}</span>
-                        <span className="text-xs text-slate-600">{expanded ? '▲' : '▼'}</span>
+                        <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-xs text-fg">
+                          {m.role}
+                        </span>
+                        <span className="text-xs text-fg/60">{expanded ? '▲' : '▼'}</span>
                       </div>
                     </div>
 
                     <div className="mt-2 flex items-center justify-between">
-                      <div className="text-sm font-semibold text-slate-900">{m.displayScore}점</div>
-
-                      {/* ✅ 변경: 신입 뱃지는 위로 이동했으므로 여기선 미달만 */}
-                      <div className="flex items-center gap-2">
-                        {(isUnderScoreMember.get(m.memberId) ?? false) && (
-                          <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs text-rose-700">
-                            미달
-                          </span>
-                        )}
-                      </div>
+                      <div className="text-sm font-semibold text-fg">{m.displayScore}점</div>
+                      {(isUnderScoreMember.get(m.memberId) ?? false) && (
+                        <span className="rounded-full border border-white/10 bg-rose-500/20 px-2 py-0.5 text-xs text-fg">
+                          미달
+                        </span>
+                      )}
                     </div>
                   </button>
 
                   {expanded && expandedMember && expandedMember.memberId === m.memberId && (
-                    <div className="border-t border-slate-200 p-4 space-y-3">
+                    <div className="border-t border-white/10 p-4 space-y-3">
                       <div className="space-y-1">
-                        <div className="text-sm font-semibold text-slate-900">
+                        <div className="text-sm font-semibold text-fg">
                           {expandedMember.name} · {expandedMember.role}
                         </div>
-                        <div className="text-xs text-slate-500">{expandedPeriodLabel} 출석 기록</div>
+                        <div className="text-xs text-fg/60">{expandedPeriodLabel} 출석 기록</div>
                       </div>
 
                       {expandedRows.length === 0 ? (
-                        <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-fg/70">
                           {expandedPeriodLabel} 출석 기록이 없습니다. (0점)
                         </div>
                       ) : (
                         <div className="overflow-x-auto">
                           <table className="w-full text-left text-sm">
-                            <thead className="text-xs text-slate-500">
-                              <tr className="border-b border-slate-200">
-                                <th className="py-2 pr-2 text-center">암장명</th>
-                                <th className="py-2 pr-2 text-center">날짜</th>
-                                <th className="py-2 pr-2 text-center">참석유형</th>
-                                <th className="py-2 pr-2 text-center">참석형태</th>
-                                <th className="py-2 pr-2 text-center">점수</th>
-                                <th className="py-2 pr-2 text-center">작성자</th>
+                            <thead className="text-xs text-fg/60">
+                              <tr className="border-b border-white/10">
+                                <th className="py-2 text-center">암장명</th>
+                                <th className="py-2 text-center">날짜</th>
+                                <th className="py-2 text-center">참석유형</th>
+                                <th className="py-2 text-center">참석형태</th>
+                                <th className="py-2 text-center">점수</th>
+                                <th className="py-2 text-center">작성자</th>
                               </tr>
                             </thead>
-
-                            {/* ✅ 변경: 행(row)만 글씨 크기 축소 */}
                             <tbody className="text-xs">
                               {expandedRows.map((r, idx) => (
-                                <tr key={idx} className="border-b border-slate-100">
-                                  <td className="py-2 pr-2 text-center text-slate-900">{r.gymName}</td>
-                                  <td className="py-2 pr-2 text-center text-slate-700">{r.date}</td>
-                                  <td className="py-2 pr-2 text-center text-slate-700">{r.preregistered}</td>
-                                  <td className="py-2 pr-2 text-center text-slate-700">{r.attendanceType}</td>
-                                  <td className="py-2 pr-2 text-center text-slate-900">{r.score}</td>
-                                  <td className="py-2 pr-2 text-center text-slate-700">{r.writer || '-'}</td>
+                                <tr key={idx} className="border-b border-white/10">
+                                  <td className="py-2 text-center text-fg">{r.gymName}</td>
+                                  <td className="py-2 text-center text-fg/80">{r.date}</td>
+                                  <td className="py-2 text-center text-fg/80">{r.preregistered}</td>
+                                  <td className="py-2 text-center text-fg/80">{r.attendanceType}</td>
+                                  <td className="py-2 text-center text-fg">{r.score}</td>
+                                  <td className="py-2 text-center text-fg/80">{r.writer || '-'}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -626,7 +632,7 @@ export default function MemberView() {
                         </div>
                       )}
 
-                      <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-fg">
                         {expandedPeriodLabel} 총 점수: <span className="font-semibold">{expandedTotal}</span>점
                       </div>
                     </div>
@@ -635,7 +641,7 @@ export default function MemberView() {
               );
             })
           )}
-        </section>
+        </div>
       )}
     </div>
   );
