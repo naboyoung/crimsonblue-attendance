@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Segmented from '@/components/ui/Segmented';
 
 type AttendanceType = '정상' | '지각' | '불참';
 
@@ -14,7 +15,7 @@ type SessionAttendee = {
 
 type SessionSummary = {
   sessionId: string;
-  date: string; // YYYY-MM-DD
+  date: string; // YYYY-MM-DD or YYYY. MM. DD etc.
   meetingType: string;
   gymName: string;
   writer: string;
@@ -37,6 +38,7 @@ function parseDateYMD(d: string) {
 
   const normalized = s.replace(/\s+/g, '').replace(/[./]/g, '-');
   const [yStr, mStr, dayStr] = normalized.split('-');
+
   const y = Number(yStr);
   const m = Number(mStr);
   const day = Number(dayStr);
@@ -45,33 +47,66 @@ function parseDateYMD(d: string) {
   return new Date(y, m - 1, day);
 }
 
+function formatDateDot(d: string) {
+  const dt = parseDateYMD(d);
+  if (!dt) return String(d ?? '').trim();
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${y}. ${m}. ${day}`;
+}
+
 function getQuarter(m0: number) {
   return Math.floor(m0 / 3) + 1;
 }
 
-// ✅ meetingType 뱃지 색상 매핑 (다크모드/브랜드 기준)
+/* ---------------- 배지 스타일(라이트 톤) ---------------- */
+function sessionIdBadgeClass() {
+  return 'border-slate-200 bg-white text-slate-800';
+}
+
 function meetingTypeBadgeClass(meetingType: string) {
   const t = String(meetingType ?? '').trim();
 
-  if (t === '정기모임') {
-    return 'border-white/10 bg-brand/20 text-fg';
-  }
+  if (t === '정기모임') return 'border-slate-200 bg-slate-100 text-slate-800';
+  if (t === '대관행사') return 'border-slate-200 bg-blue-50 text-blue-700';
+  if (t === '기타') return 'border-slate-200 bg-slate-50 text-slate-700';
 
-  if (t === '대관행사') {
-    return 'border-white/10 bg-blue-500/20 text-fg';
-  }
-
-  if (t === '기타') {
-    return 'border-white/10 bg-white/10 text-fg/80';
-  }
-
-  // fallback (예상치 못한 값)
-  return 'border-white/10 bg-white/10 text-fg/80';
+  return 'border-slate-200 bg-slate-50 text-slate-700';
 }
 
+/* ---------------- 출석자 테이블(출석등록 톤) ---------------- */
+function AttendeeTableBox({
+  attendees,
+}: {
+  attendees: Array<{ name: string; preregistered: string; attendanceType: string }>;
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="grid grid-cols-3 gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+        <div>이름</div>
+        <div className="text-center">참석유형</div>
+        <div className="text-center">참석형태</div>
+      </div>
+
+      {attendees.length === 0 ? (
+        <div className="px-4 py-6 text-center text-sm text-slate-500">아직 추가된 출석자가 없습니다.</div>
+      ) : (
+        <div className="divide-y divide-slate-200">
+          {attendees.map((a, i) => (
+            <div key={i} className="grid grid-cols-3 gap-2 px-4 py-3 text-sm text-slate-700">
+              <div className="truncate">{a.name}</div>
+              <div className="text-center text-slate-600">{a.preregistered}</div>
+              <div className="text-center text-slate-600">{a.attendanceType}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function SessionView() {
-  /* ---------- state ---------- */
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -79,8 +114,6 @@ export default function SessionView() {
   const [period, setPeriod] = useState<PeriodFilter>('이번달');
   const [sortOrder, setSortOrder] = useState<SortOrder>('역회차순');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
-
-  const periodOptions: PeriodFilter[] = ['이번달', '지난달', '이번분기', '지난분기', '전체'];
 
   /* ---------- 데이터 로딩 ---------- */
   useEffect(() => {
@@ -145,14 +178,12 @@ export default function SessionView() {
 
   /* ---------- 정렬 ---------- */
   const displaySessions = useMemo(() => {
-    // ✅ 변경: 전체든 아니든, slice 제거. 기간 필터 결과를 전부 보여줌.
     if (period !== '전체') {
       return [...periodFiltered].sort((a, b) => {
         return (parseDateYMD(b.date)?.getTime() ?? 0) - (parseDateYMD(a.date)?.getTime() ?? 0);
       });
     }
 
-    // 전체일 때만 회차 정렬 적용
     const arr = [...periodFiltered];
     arr.sort((a, b) => {
       const diff = Number(a.sessionId) - Number(b.sessionId);
@@ -161,138 +192,107 @@ export default function SessionView() {
     return arr;
   }, [periodFiltered, period, sortOrder]);
 
-  const toggleExpand = (sid: string) => {
-    setExpandedSessionId((prev) => (prev === sid ? null : sid));
-  };
+  const toggleExpand = (sid: string) => setExpandedSessionId((prev) => (prev === sid ? null : sid));
+  const toggleSort = () => setSortOrder((p) => (p === '역회차순' ? '회차순' : '역회차순'));
 
-  const toggleSort = () => {
-    setSortOrder((p) => (p === '역회차순' ? '회차순' : '역회차순'));
-  };
-
-  /* ---------- render ---------- */
   return (
     <div className="space-y-3">
-      {/* 헤더: CardSection이 title을 제공하므로, 여기서는 정렬 버튼만 우측 배치 */}
+      {/* ✅ 전체일 때만 회차 정렬 */}
       <div className="flex items-center justify-end">
         {period === '전체' && (
           <button
             type="button"
             onClick={toggleSort}
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-fg transition hover:bg-white/10 active:scale-[0.99]"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 active:scale-[0.99]"
           >
             회차 {sortOrder === '역회차순' ? '▼' : '▲'}
           </button>
         )}
       </div>
 
-      {/* 기간 필터 */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {periodOptions.map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => setPeriod(p)}
-            className={[
-              'shrink-0 rounded-full border px-3 py-1 text-xs font-semibold transition',
-              period === p
-                ? 'border-white/10 bg-brand/15 text-fg'
-                : 'border-white/10 bg-white/5 text-fg/70 hover:bg-white/10 hover:text-fg',
-            ].join(' ')}
-          >
-            {p}
-          </button>
-        ))}
-      </div>
+      {/* ✅ PeriodSegment 제거 → 공용 Segmented 적용 (UI 동일) */}
+      <Segmented<PeriodFilter>
+        value={period}
+        onChange={setPeriod}
+        options={[
+          { value: '이번달', label: '이번달' },
+          { value: '지난달', label: '지난달' },
+          { value: '이번분기', label: '이번분기' },
+          { value: '지난분기', label: '지난분기' },
+          { value: '전체', label: '전체' },
+        ]}
+      />
 
-      {/* 상태 */}
-      {loading && <div className="text-sm text-fg/70">불러오는 중...</div>}
+      {loading && <div className="text-sm text-slate-500">불러오는 중...</div>}
       {error && <div className="text-sm text-red-600">{error}</div>}
 
-      {/* Empty State */}
       {!loading && !error && displaySessions.length === 0 && (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-fg/80">
-          <div className="font-semibold text-fg">표시할 출석 기록이 없습니다.</div>
-          <div className="mt-1 text-xs text-fg/70">
-            선택한 기간에 등록된 모임이 없어요. <span className="font-semibold text-fg">출석 등록</span>에서 먼저
-            등록하거나, 기간 필터를 <span className="font-semibold text-fg">전체</span>로 변경해보세요.
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+          <div className="font-semibold text-slate-900">표시할 출석 기록이 없습니다.</div>
+          <div className="mt-1 text-xs text-slate-500">
+            선택한 기간에 등록된 모임이 없어요. <span className="font-semibold text-slate-800">출석 등록</span>에서 먼저
+            등록하거나, 기간 필터를 <span className="font-semibold text-slate-800">전체</span>로 변경해보세요.
           </div>
         </div>
       )}
 
-      {/* 내부 스크롤 영역 */}
       {!loading && !error && displaySessions.length > 0 && (
-        <div className="max-h-[70vh] space-y-3 overflow-auto pr-1">
-          {displaySessions.map((s) => {
-            const expanded = expandedSessionId === s.sessionId;
+        <div className="max-h-[70vh] overflow-auto pr-1">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <div className="divide-y divide-slate-200">
+              {displaySessions.map((s) => {
+                const expanded = expandedSessionId === s.sessionId;
 
-            return (
-              <div key={s.sessionId} className="rounded-2xl border border-white/10 bg-white/5">
-                <button
-                  type="button"
-                  className="w-full space-y-1 p-4 text-left transition hover:bg-white/5"
-                  onClick={() => toggleExpand(s.sessionId)}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      {/* sessionId 배지 + 날짜 */}
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-xs font-semibold text-fg">
-                          {s.sessionId}회
-                        </span>
-                        <div className="text-sm font-semibold text-fg">{s.date}</div>
+                return (
+                  <div key={s.sessionId}>
+                    <button
+                      type="button"
+                      className="w-full p-4 text-left transition hover:bg-slate-50"
+                      onClick={() => toggleExpand(s.sessionId)}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={['rounded-full border px-2 py-0.5 text-xs font-semibold', sessionIdBadgeClass()].join(' ')}>
+                              {s.sessionId}회
+                            </span>
+
+                            <span className={['rounded-full border px-2 py-0.5 text-xs font-semibold', meetingTypeBadgeClass(s.meetingType)].join(' ')}>
+                              {s.meetingType}
+                            </span>
+
+                            <div className="text-sm font-semibold text-slate-900">{formatDateDot(s.date)}</div>
+                          </div>
+
+                          <div className="truncate text-base font-semibold text-slate-900">{s.gymName}</div>
+                          <div className="text-xs text-slate-500">작성자: {s.writer}</div>
+
+                          <div className="pt-1 text-sm font-semibold text-slate-900">총 출석자 {s.totalCount}명</div>
+                          <div className="text-xs text-slate-600">
+                            정상 {s.normalCount} · 지각 {s.lateCount} · 불참 {s.absentCount}
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 pt-1 text-xs text-slate-500">{expanded ? '▲' : '▼'}</div>
                       </div>
+                    </button>
 
-                      <div className="mt-1 truncate text-sm text-fg/80">{s.gymName}</div>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-2">
-                      {/* meetingType 배지: 기존 함수 유지 */}
-                      <span
-                        className={[
-                          'rounded-full border px-2 py-0.5 text-xs font-semibold',
-                          meetingTypeBadgeClass(s.meetingType),
-                        ].join(' ')}
-                      >
-                        {s.meetingType}
-                      </span>
-                      <span className="text-xs text-fg/70">{expanded ? '▲' : '▼'}</span>
-                    </div>
+                    {expanded && (
+                      <div className="bg-slate-50 px-4 pb-4">
+                        <AttendeeTableBox
+                          attendees={s.attendees.map((a) => ({
+                            name: a.name,
+                            preregistered: a.preregistered,
+                            attendanceType: a.attendanceType,
+                          }))}
+                        />
+                      </div>
+                    )}
                   </div>
-
-                  <div className="text-xs text-fg/60">작성자: {s.writer}</div>
-
-                  {/* 요약 */}
-                  <div className="mt-1 text-sm font-semibold text-fg">총 출석자 {s.totalCount}명</div>
-                  <div className="text-xs text-fg/70">
-                    정상 {s.normalCount} · 지각 {s.lateCount} · 불참 {s.absentCount}
-                  </div>
-                </button>
-
-                {expanded && (
-                  <div className="border-t border-white/10 p-4">
-                    <table className="w-full text-sm">
-                      <thead className="text-xs text-fg/60">
-                        <tr>
-                          <th className="text-left font-semibold">이름</th>
-                          <th className="font-semibold">참석유형</th>
-                          <th className="font-semibold">참석형태</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {s.attendees.map((a, i) => (
-                          <tr key={i} className="border-t border-white/10">
-                            <td className="py-2 text-fg">{a.name}</td>
-                            <td className="text-center text-fg/80">{a.preregistered}</td>
-                            <td className="text-center text-fg/80">{a.attendanceType}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </div>

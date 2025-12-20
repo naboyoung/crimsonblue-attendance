@@ -59,7 +59,11 @@ const MEETING_TYPE_DOT_CLASS: Record<string, string> = {
 
 function Dot({ meetingType }: { meetingType: string }) {
   const cls = MEETING_TYPE_DOT_CLASS[meetingType] ?? "bg-gray-400";
-  return <span className={["mt-[2px] inline-block", "h-3 w-[3px] rounded-full", cls, ].join(" ")} />;
+  return (
+    <span
+      className={["mt-[2px] inline-block", "h-3 w-[3px] rounded-full", cls].join(" ")}
+    />
+  );
 }
 
 /**
@@ -167,8 +171,6 @@ export function HomeCalendar() {
             ▶
           </Button>
         </div>
-
-        <div className="text-xs text-muted-foreground">{loading ? "불러오는 중…" : ""}</div>
       </div>
 
       {/* Week Header */}
@@ -188,43 +190,43 @@ export function HomeCalendar() {
           const memos = memoMap[dateStr] ?? [];
           const isToday = isSameDay(d, today);
           const isSelected = selectedDate === dateStr;
-        // ✅ 표시 규칙
-        // - 1개: (| 담당자) / (  암장명)  -> 둘 다 줄바꿈 허용
-        // - 2개 이상: (| 담당자) 2줄 (+N 선택) -> 담당자 줄바꿈 허용
-        const content =
+
+          // ✅ 표시 규칙
+          // - 1개: (| 담당자) / (  암장명)  -> 둘 다 줄바꿈 허용
+          // - 2개 이상: (| 담당자) 2줄 (+N 선택) -> 담당자 줄바꿈 허용
+          const content =
             memos.length === 0 ? null : memos.length === 1 ? (
-                <div className="mt-1 space-y-0.5">
+              <div className="mt-1 space-y-0.5">
                 <div className="flex items-start gap-1 text-[9px] leading-tight text-fg/90">
-                    <Dot meetingType={memos[0].meeting_type} />
-                    <div className="min-w-0 flex-1 whitespace-normal break-words font-semibold">
+                  <Dot meetingType={memos[0].meeting_type} />
+                  <div className="min-w-0 flex-1 whitespace-normal break-words font-semibold">
                     {memos[0].assignee}
-                    </div>
+                  </div>
                 </div>
 
                 <div className="pl-2 text-[9px] leading-tight text-fg/70 whitespace-normal break-words">
-                    {memos[0].gym_name || ""}
+                  {memos[0].gym_name || ""}
                 </div>
-                </div>
+              </div>
             ) : (
-                <div className="mt-1 space-y-0.5">
+              <div className="mt-1 space-y-0.5">
                 {memos.slice(0, 2).map((m) => (
-                    <div
+                  <div
                     key={m.memo_id}
                     className="flex items-start gap-1 text-[9px] leading-tight text-fg/90"
-                    >
+                  >
                     <Dot meetingType={m.meeting_type} />
                     <div className="min-w-0 flex-1 whitespace-normal break-words font-semibold">
-                        {m.assignee}
+                      {m.assignee}
                     </div>
-                    </div>
+                  </div>
                 ))}
 
                 {memos.length > 2 && (
-                    <div className="text-[9px] leading-tight text-fg/50">+{memos.length - 2}</div>
+                  <div className="text-[9px] leading-tight text-fg/50">+{memos.length - 2}</div>
                 )}
-                </div>
+              </div>
             );
-    
 
           return (
             <button
@@ -255,17 +257,30 @@ export function HomeCalendar() {
               ].join(" ")}
             >
               <div className="flex items-start justify-between h-[20px]">
-                <div className={["text-sm font-semibold leading-none text-fg/90", isToday ? "text-brand":isSunday(d) ? "text-red-500":isSaturday(d) ? "text-red-500":"text-fg/90",].join(" ")}>{d.getDate()}</div>
+                <div
+                  className={[
+                    "text-sm font-semibold leading-none text-fg/90",
+                    isToday
+                      ? "text-brand"
+                      : isSunday(d)
+                        ? "text-red-500"
+                        : isSaturday(d)
+                          ? "text-red-500"
+                          : "text-fg/90",
+                  ].join(" ")}
+                >
+                  {d.getDate()}
+                </div>
 
                 {/* ✅ 우측 영역은 항상 동일 폭 */}
                 <div className="w-4 text-right text-[10px] text-fg/50">
-                    {memos.length > 0 ? memos.length : ""}
+                  {memos.length > 0 ? memos.length : ""}
                 </div>
               </div>
 
               {memos.length === 0 ? (
                 <div className="mt-1 text-[10px] text-fg/35 opacity-0 transition group-hover:opacity-100">
-                    메모
+                  메모
                 </div>
               ) : null}
 
@@ -273,6 +288,11 @@ export function HomeCalendar() {
             </button>
           );
         })}
+      </div>
+
+      {/* ✅ Loading (캘린더 아래로 이동 + 자리 고정) */}
+      <div className="mt-2 min-h-[16px] text-center text-xs text-muted-foreground">
+        {loading ? "불러오는 중…" : ""}
       </div>
 
       {/* Bottom Sheet */}

@@ -7,7 +7,7 @@ export default function SessionOverviewPage() {
   return (
     <CardSection
       title="세션별 출석 현황"
-      description="세션 단위로 참석자와 기록을 확인해요."
+      description="세션 단위로 참석자와 모임 기록을 확인해요."
     >
       <SessionView />
     </CardSection>

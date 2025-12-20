@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { FIELD_BASE, cx } from '@/components/ui/fieldStyles';
+import Segmented from '@/components/ui/Segmented';
 
 type AttendanceType = '정상' | '지각' | '불참';
 
@@ -150,11 +152,11 @@ function getJoinDateRaw(m: Member) {
 
 /* ---------------- Props ---------------- */
 type MemberViewProps = {
-  sortKey: SortKey;
-  sortDir: SortDir;
+  initialSortKey?: SortKey;
+  initialSortDir?: SortDir;
 };
 
-export default function MemberView({ sortKey, sortDir }: MemberViewProps) {
+export default function MemberView({ initialSortKey = 'name', initialSortDir = 'asc' }: MemberViewProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -168,6 +170,10 @@ export default function MemberView({ sortKey, sortDir }: MemberViewProps) {
 
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   const [showAllLogs, setShowAllLogs] = useState(false);
+
+  const [sortKey, setSortKey] = useState<SortKey>(initialSortKey);
+  const [sortDir, setSortDir] = useState<SortDir>(initialSortDir);
+  const toggleSortDir = () => setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
 
   useEffect(() => {
     const load = async () => {
@@ -269,9 +275,7 @@ export default function MemberView({ sortKey, sortDir }: MemberViewProps) {
         const attendeeName = String(a.name ?? '').trim();
         if (!attendeeName) continue;
 
-        const attendeeMemberId =
-          String((a as any).memberId ?? '').trim() || nameToMemberId.get(attendeeName) || '';
-
+        const attendeeMemberId = String((a as any).memberId ?? '').trim() || nameToMemberId.get(attendeeName) || '';
         if (!attendeeMemberId || !map.has(attendeeMemberId)) continue;
 
         const row: MemberAttendanceRow = {
@@ -290,9 +294,7 @@ export default function MemberView({ sortKey, sortDir }: MemberViewProps) {
     }
 
     for (const [, v] of map) {
-      v.rows.sort(
-        (ra, rb) => (parseDateYMD(rb.date)?.getTime() ?? 0) - (parseDateYMD(ra.date)?.getTime() ?? 0),
-      );
+      v.rows.sort((ra, rb) => (parseDateYMD(rb.date)?.getTime() ?? 0) - (parseDateYMD(ra.date)?.getTime() ?? 0));
     }
 
     return map;
@@ -447,216 +449,207 @@ export default function MemberView({ sortKey, sortDir }: MemberViewProps) {
     });
   };
 
+  /* ---------------- 라이트 톤 배지 ---------------- */
+  const badgeBase = 'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold';
+  const badgeRole = `${badgeBase} border-slate-200 bg-white text-slate-800`;
+  const badgeNewbie = `${badgeBase} border-slate-200 bg-indigo-50 text-indigo-700`;
+  const badgeUnder = `${badgeBase} border-slate-200 bg-rose-50 text-rose-700`;
+
+  const selectClass =
+    'rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-200';
+
+  const sortDirBtnClass =
+    'rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 active:scale-[0.99]';
+
+  const helperTextClass = 'text-xs text-slate-500';
+
   return (
     <div className="space-y-3">
-      {/* 필터 영역 */}
-      <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-        <div className="grid gap-2">
-          <label className="text-sm text-fg/70">이름 검색</label>
-          <input
-            value={nameQuery}
-            onChange={(e) => setNameQuery(e.target.value)}
-            placeholder="이름을 입력하세요"
-            className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm text-fg placeholder:text-fg/50"
+      {/* 이름 검색 */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-slate-600">이름 검색</label>
+        <input
+          value={nameQuery}
+          onChange={(e) => setNameQuery(e.target.value)}
+          placeholder="이름을 입력하세요"
+          className={cx(FIELD_BASE)}
+          autoComplete="off"
+        />
+      </div>
+
+      {/* 필터/정렬 */}
+      <div className="space-y-2">
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-slate-600">회원 등급 (택1)</label>
+          <Segmented<RoleFilter>
+            value={roleFilter}
+            onChange={setRoleFilter}
+            options={[
+              { value: '전체', label: '전체' },
+              { value: '운영진', label: '운영진' },
+              { value: '정회원', label: '정회원' },
+              { value: '준회원', label: '준회원' },
+            ]}
           />
         </div>
 
-        <div className="grid gap-2">
-          <label className="text-sm text-fg/70">Role 필터</label>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {(['전체', '운영진', '정회원', '준회원'] as RoleFilter[]).map((r) => {
-              const active = roleFilter === r;
-              return (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRoleFilter(r)}
-                  className={[
-                    'shrink-0 rounded-full border px-3 py-1 text-xs font-semibold transition',
-                    active
-                      ? 'border-white/10 bg-brand/20 text-fg'
-                      : 'border-white/10 bg-white/10 text-fg/70 hover:bg-white/15 hover:text-fg',
-                  ].join(' ')}
-                >
-                  {r}
-                </button>
-              );
-            })}
+        <div className="h-px w-full bg-slate-200" />
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-slate-600">추가 필터</label>
+
+          <Segmented<'신입(6개월)' | '점수 미달자'>
+            mode="multi"
+            value={[
+              ...(onlyNewbie ? (['신입(6개월)'] as const) : []),
+              ...(onlyUnderScore ? (['점수 미달자'] as const) : []),
+            ]}
+            onChange={(next) => {
+              setOnlyNewbie(next.includes('신입(6개월)'));
+              setOnlyUnderScore(next.includes('점수 미달자'));
+            }}
+            options={[
+              { value: '신입(6개월)', label: '신입(6개월)' },
+              { value: '점수 미달자', label: '점수 미달자' },
+            ]}
+          />
+
+          <div className={helperTextClass}>
+            * 운영진/정회원: {MIN_QUARTER_SCORE_BY_ROLE.정회원}점 이상(분기), 준회원: {MIN_HALF_SCORE_FOR_JUNIOR}점 이상(반기)
           </div>
         </div>
 
-        <div className="grid gap-2">
-          <label className="text-sm text-fg/70">추가 필터</label>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setOnlyNewbie((p) => !p)}
-              className={[
-                'rounded-full border px-3 py-1 text-xs font-semibold transition',
-                onlyNewbie
-                  ? 'border-white/10 bg-indigo-500/20 text-fg'
-                  : 'border-white/10 bg-white/10 text-fg/70 hover:bg-white/15 hover:text-fg',
-              ].join(' ')}
-            >
-              신입(6개월)
-            </button>
+        {/* 정렬 */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-slate-600">정렬</span>
 
-            <button
-              type="button"
-              onClick={() => setOnlyUnderScore((p) => !p)}
-              className={[
-                'rounded-full border px-3 py-1 text-xs font-semibold transition',
-                onlyUnderScore
-                  ? 'border-white/10 bg-rose-500/20 text-fg'
-                  : 'border-white/10 bg-white/10 text-fg/70 hover:bg-white/15 hover:text-fg',
-              ].join(' ')}
-            >
-              점수 미달자
-            </button>
+            <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className={selectClass}>
+              <option value="name">이름순</option>
+              <option value="score">점수순</option>
+            </select>
           </div>
 
-          <div className="text-xs text-fg/60">
-            * 운영진/정회원: {MIN_QUARTER_SCORE_BY_ROLE.정회원}점 이상(분기), 준회원:{' '}
-            {MIN_HALF_SCORE_FOR_JUNIOR}점 이상(반기)
-          </div>
+          <button type="button" onClick={toggleSortDir} title={sortDir === 'asc' ? '오름차순' : '내림차순'} className={sortDirBtnClass}>
+            {sortDir === 'asc' ? '▲' : '▼'}
+          </button>
         </div>
       </div>
 
-      {loading && (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-fg/70">
-          불러오는 중...
-        </div>
-      )}
+      {loading && <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">불러오는 중...</div>}
 
-      {error && (
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
-          {error}
-        </div>
-      )}
+      {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
       {!loading && !error && (
-        <div className="space-y-2">
+        <div className="max-h-[58vh] overflow-auto pr-1">
           {filteredCards.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-fg/70">
-              조건에 해당하는 회원이 없습니다.
-            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">조건에 해당하는 회원이 없습니다.</div>
           ) : (
-            filteredCards.map((m) => {
-              const expanded = expandedMemberId === m.memberId;
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <div className="divide-y divide-slate-200">
+                {filteredCards.map((m) => {
+                  const expanded = expandedMemberId === m.memberId;
+                  const newbie = isNewbieMember.get(m.memberId) ?? false;
+                  const under = isUnderScoreMember.get(m.memberId) ?? false;
 
-              return (
-                <div key={m.memberId} className="rounded-2xl border border-white/10 bg-white/5">
-                  <button
-                    type="button"
-                    className="w-full p-4 text-left transition hover:bg-white/5"
-                    onClick={() => toggleExpand(m.memberId)}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm font-semibold text-fg">{m.name}</div>
-                          {(isNewbieMember.get(m.memberId) ?? false) && (
-                            <span className="rounded-full border border-white/10 bg-indigo-500/20 px-2 py-0.5 text-xs text-fg">
-                              신입
-                            </span>
+                  return (
+                    <div key={m.memberId}>
+                      <button
+                        type="button"
+                        className={['w-full p-4 text-left transition', expanded ? 'bg-slate-50' : 'hover:bg-slate-50'].join(' ')}
+                        onClick={() => toggleExpand(m.memberId)}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="text-sm font-semibold text-slate-900">{m.name}</div>
+                              {newbie && <span className={badgeNewbie}>신입</span>}
+                            </div>
+
+                            <div className="text-xs text-slate-500">
+                              {m.displayPeriodLabel} · 방문 암장 {m.gymCount}곳
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className={badgeRole}>{m.role}</span>
+                            <span className="text-xs text-slate-500">{expanded ? '▲' : '▼'}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="text-sm font-semibold text-slate-900">{m.displayScore}점</div>
+                          {under && <span className={badgeUnder}>미달</span>}
+                        </div>
+                      </button>
+
+                      {expanded && expandedMember && expandedMember.memberId === m.memberId && (
+                        <div className="space-y-3 border-t border-slate-200 bg-slate-50 p-4">
+
+
+                          {expandedRows.length === 0 ? (
+                            <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
+                              {expandedPeriodLabel} 출석 기록이 없습니다. (0점)
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {(() => {
+                                const LOG_PREVIEW_LIMIT = 10;
+                                const visibleRows = showAllLogs ? expandedRows : expandedRows.slice(0, LOG_PREVIEW_LIMIT);
+                                const hasMore = expandedRows.length > LOG_PREVIEW_LIMIT;
+
+                                return (
+                                  <>
+                                    {visibleRows.map((r, idx) => {
+                                      const score = r.score ?? 0;
+                                      const scoreText = score > 0 ? `+${score}` : `${score}`;
+
+                                      const secondary = [
+                                        formatDateDisplay(r.date),
+                                        String(r.preregistered ?? '').trim(),
+                                        String(r.attendanceType ?? '').trim(),
+                                        r.writer ? `작성자: ${String(r.writer).trim()}` : '',
+                                      ]
+                                        .filter(Boolean)
+                                        .join(' · ');
+
+                                      return (
+                                        <div key={`${r.gymName}-${r.date}-${idx}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div className="text-sm font-semibold text-slate-900">{r.gymName}</div>
+                                            <div className="shrink-0 text-sm font-semibold text-slate-900">{scoreText}</div>
+                                          </div>
+
+                                          <div className="mt-1 text-xs text-slate-500">{secondary}</div>
+                                        </div>
+                                      );
+                                    })}
+
+                                    {hasMore && !showAllLogs && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setShowAllLogs(true)}
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                                      >
+                                        더보기 ({expandedRows.length - LOG_PREVIEW_LIMIT}개)
+                                      </button>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
                           )}
-                        </div>
-                        <div className="text-xs text-fg/60">
-                          {m.displayPeriodLabel} · 방문 암장 {m.gymCount}곳
-                        </div>
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-xs text-fg">
-                          {m.role}
-                        </span>
-                        <span className="text-xs text-fg/60">{expanded ? '▲' : '▼'}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-2 flex items-center justify-between">
-                      <div className="text-sm font-semibold text-fg">{m.displayScore}점</div>
-                      {(isUnderScoreMember.get(m.memberId) ?? false) && (
-                        <span className="rounded-full border border-white/10 bg-rose-500/20 px-2 py-0.5 text-xs text-fg">
-                          미달
-                        </span>
-                      )}
-                    </div>
-                  </button>
-
-                  {expanded && expandedMember && expandedMember.memberId === m.memberId && (
-                    <div className="space-y-3 border-t border-white/10 p-4">
-                      <div className="space-y-1">
-                        <div className="text-sm font-semibold text-fg">
-                          {expandedMember.name} · {expandedMember.role}
-                        </div>
-                        <div className="text-xs text-fg/60">{expandedPeriodLabel} 출석 기록</div>
-                      </div>
-
-                      {expandedRows.length === 0 ? (
-                        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-fg/70">
-                          {expandedPeriodLabel} 출석 기록이 없습니다. (0점)
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {(() => {
-                            const LOG_PREVIEW_LIMIT = 10;
-                            const visibleRows = showAllLogs ? expandedRows : expandedRows.slice(0, LOG_PREVIEW_LIMIT);
-                            const hasMore = expandedRows.length > LOG_PREVIEW_LIMIT;
-
-                            return (
-                              <>
-                                {visibleRows.map((r, idx) => {
-                                  const score = r.score ?? 0;
-                                  const scoreText = score > 0 ? `+${score}` : `${score}`;
-
-                                  const secondary = [
-                                    formatDateDisplay(r.date),
-                                    String(r.preregistered ?? '').trim(),
-                                    String(r.attendanceType ?? '').trim(),
-                                    r.writer ? `작성자: ${String(r.writer).trim()}` : '',
-                                  ]
-                                    .filter(Boolean)
-                                    .join(' · ');
-
-                                  return (
-                                    <div
-                                      key={`${r.gymName}-${r.date}-${idx}`}
-                                      className="rounded-xl border border-white/10 bg-white/5 px-3 py-3"
-                                    >
-                                      <div className="flex items-start justify-between gap-3">
-                                        <div className="text-sm font-semibold text-fg">{r.gymName}</div>
-                                        <div className="shrink-0 text-sm font-semibold text-fg">{scoreText}</div>
-                                      </div>
-
-                                      <div className="mt-1 text-xs text-fg/60">{secondary}</div>
-                                    </div>
-                                  );
-                                })}
-
-                                {hasMore && !showAllLogs && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowAllLogs(true)}
-                                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-fg/80 transition hover:bg-white/10"
-                                  >
-                                    더보기 ({expandedRows.length - LOG_PREVIEW_LIMIT}개)
-                                  </button>
-                                )}
-                              </>
-                            );
-                          })()}
+                          <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-900">
+                            {expandedPeriodLabel} 총 점수: <span className="font-semibold">{expandedTotal}</span>점
+                          </div>
                         </div>
                       )}
-
-                      <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-fg">
-                        {expandedPeriodLabel} 총 점수: <span className="font-semibold">{expandedTotal}</span>점
-                      </div>
                     </div>
-                  )}
-                </div>
-              );
-            })
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       )}

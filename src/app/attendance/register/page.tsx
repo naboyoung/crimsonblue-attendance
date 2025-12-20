@@ -218,7 +218,7 @@ export default function AttendanceRegisterPage() {
 
       // ✅ 성공 처리
       setConfirmOpen(false);
-      alert('출석 등록 완료 ✅ (구글시트에 저장됨)');
+      alert('출석 등록 완료 ✅\n오늘도 정모 여느라 수고많았습니다!');
 
       // ✅ 변경: 등록 완료 후 초기화(날짜는 유지)
       resetAfterSuccess();

@@ -55,7 +55,7 @@ export default function AttendanceConfirmModal({
   const memo = String(payload.description ?? '').trim();
   const hasMemo = memo.length > 0;
 
-  // ✅ A안: 참석자 요약
+  // 참석자 요약
   const total = payload.attendees.length;
   const normal = payload.attendees.filter((a) => a.attendanceType === '정상').length;
   const late = payload.attendees.filter((a) => a.attendanceType === '지각').length;
@@ -68,7 +68,7 @@ export default function AttendanceConfirmModal({
       role="dialog"
       aria-modal="true"
     >
-      {/* ✅ A안: Bottom Sheet */}
+      {/* Bottom Sheet */}
       <div
         className="w-full max-w-md rounded-t-3xl border border-slate-200 bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
@@ -108,7 +108,9 @@ export default function AttendanceConfirmModal({
 
               <div className="space-y-1">
                 <div className="text-xs text-slate-500">회차</div>
-                <div className="text-sm font-semibold text-slate-900">{payload.sessionId}회</div>
+                <div className="text-sm font-semibold text-slate-900">
+                  {payload.sessionId}회
+                </div>
               </div>
             </div>
 
@@ -129,16 +131,20 @@ export default function AttendanceConfirmModal({
             {hasMemo && (
               <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
                 <div className="text-xs font-semibold text-slate-700">메모</div>
-                <div className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{memo}</div>
+                <div className="mt-1 whitespace-pre-wrap text-sm text-slate-700">
+                  {memo}
+                </div>
               </div>
             )}
           </div>
 
           <div className="my-4 border-t border-slate-200" />
 
-          {/* ✅ 참석자 요약 + 목록 */}
+          {/* 참석자 요약 + 목록 */}
           <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-slate-900">참석자 {total}명</div>
+            <div className="text-sm font-semibold text-slate-900">
+              참석자 {total}명
+            </div>
             <div className="text-xs text-slate-600">
               정상 {normal} · 지각 {late} · 불참 {absent}
             </div>
@@ -167,12 +173,19 @@ export default function AttendanceConfirmModal({
                   </thead>
                   <tbody className="text-slate-800">
                     {payload.attendees.map((a, idx) => (
-                      <tr key={idx} className="border-b border-slate-100 last:border-b-0">
+                      <tr
+                        key={idx}
+                        className="border-b border-slate-100 last:border-b-0"
+                      >
                         <td className="px-3 py-2 text-center font-medium text-slate-900 truncate">
                           {a.name}
                         </td>
-                        <td className="px-3 py-2 text-center text-slate-700">{a.preregistered}</td>
-                        <td className="px-3 py-2 text-center text-slate-700">{a.attendanceType}</td>
+                        <td className="px-3 py-2 text-center text-slate-700">
+                          {a.preregistered}
+                        </td>
+                        <td className="px-3 py-2 text-center text-slate-700">
+                          {a.attendanceType}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -182,14 +195,14 @@ export default function AttendanceConfirmModal({
           )}
         </div>
 
-        {/* Footer */}
+        {/* ✅ Footer (수정된 부분) */}
         <div className="border-t border-slate-200 px-4 py-3">
           <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="h-11 flex-1 rounded-md border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 flex-1 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               취소
             </button>
@@ -199,10 +212,11 @@ export default function AttendanceConfirmModal({
               onClick={onConfirm}
               disabled={submitting || total === 0}
               className={[
-                'h-11 flex-1 rounded-md text-sm font-semibold transition active:scale-[0.98]',
+                'h-11 flex-1 rounded-xl text-sm font-semibold transition active:scale-[0.98]',
+                'focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2',
                 submitting || total === 0
-                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                  : 'bg-brand text-white shadow-soft hover:opacity-90',
+                  ? 'cursor-not-allowed bg-slate-200 text-slate-400'
+                  : 'bg-slate-900 text-white shadow-sm hover:opacity-90',
               ].join(' ')}
               title={total === 0 ? '참석자를 추가해주세요' : undefined}
             >
