@@ -256,7 +256,7 @@ export function CalendarMemoSheet({
               일정 메모
             </SheetTitle>
             <SheetDescription className="text-sm text-black/60">
-              {date} · 목록에서 관리하고, 우측 상단 +로 추가해요.
+              {date} · 어느 암장을 방문할 예정인가요?
             </SheetDescription>
           </SheetHeader>
 
@@ -267,7 +267,7 @@ export function CalendarMemoSheet({
               disabled={saving}
               onClick={() => setCreateOpen((v) => !v)}
             >
-              + 일정 추가
+              + 일정추가
             </Button>
           </div>
         </div>
