@@ -1,4 +1,3 @@
-// src/components/members/MemberProfileSheet.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -7,9 +6,8 @@ import type { Member } from "./MemberCard";
 function lineItem(label: string, value?: string) {
   const v = (value ?? "").trim();
   return (
-    <span className="text-sm text-zinc-700 dark:text-zinc-200">
-      <span className="text-zinc-500 dark:text-zinc-400">{label}</span>{" "}
-      {v || "-"}
+    <span className="text-sm text-zinc-700">
+      <span className="text-zinc-500">{label}</span> {v || "-"}
     </span>
   );
 }
@@ -58,16 +56,17 @@ export function MemberProfileSheet(props: {
       />
 
       {/* sheet */}
-      <div className="absolute bottom-0 left-0 right-0 mx-auto max-w-md rounded-t-3xl bg-white p-5 shadow-2xl dark:bg-zinc-950">
-        <div className="flex items-center justify-between">
-          <div className="h-1.5 w-12 rounded-full bg-zinc-200 mx-auto dark:bg-zinc-800" />
+      <div className="absolute bottom-0 left-0 right-0 mx-auto max-w-md rounded-t-3xl bg-white p-5 pb-20 shadow-2xl">
+        {/* grip */}
+        <div className="flex items-center justify-center">
+          <div className="h-1.5 w-12 rounded-full bg-zinc-200" />
         </div>
 
         <div className="mt-4">
-          <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <div className="text-lg font-semibold text-zinc-900">
             {(member.name ?? "").trim() || "(이름 없음)"}
           </div>
-          <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+          <div className="mt-1 text-sm text-zinc-600">
             {(member.phone_number ?? "").trim() || "연락처없음"}
           </div>
         </div>
@@ -85,8 +84,8 @@ export function MemberProfileSheet(props: {
             {lineItem("최근 업데이트:", lastUpdated)}
           </div>
 
-          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-200">
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">비고</div>
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+            <div className="mb-1 text-xs text-zinc-500">비고</div>
             <div className="whitespace-pre-wrap">{comment || "-"}</div>
           </div>
         </div>
@@ -95,7 +94,7 @@ export function MemberProfileSheet(props: {
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-2xl bg-zinc-900 py-3 text-sm font-semibold text-white hover:bg-zinc-800 transition dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="w-full rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800"
           >
             닫기
           </button>

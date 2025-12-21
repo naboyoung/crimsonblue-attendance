@@ -1,20 +1,38 @@
-import { ThemeToggle } from "@/components/ThemeToggle";
+'use client';
+
+import CardSection from '@/components/ui/CardSection';
 
 export default function MorePage() {
   return (
-    <div className="mx-auto w-full max-w-md px-4 py-4">
-      <div className="text-base font-semibold">더보기</div>
+    <div className="mx-auto max-w-md px-4 pb-24">
+      <CardSection
+        title="더보기"
+        description="기타 설정 및 정보를 확인할 수 있어요."
+      >
+        <div className="divide-y">
+          {/* 외부 링크 1 */}
+          <a
+            href="https://drive.google.com/file/d/1NrzYXccyQYbQ2FKx5TrnXqIMdx1ho93F/viewhttps://docs.google.com/spreadsheets/d/XXXX"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-between py-3 text-sm hover:bg-zinc-50 rounded-md px-3"
+          >
+            <span>크림슨블루 회칙</span>
+            <span className="text-zinc-400">↗</span>
+          </a>
 
-      {/* Theme toggle */}
-      <div className="mt-4">
-        <ThemeToggle />
-      </div>
-        
-      <div className="mt-4 space-y-2">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-fg/80">
-          여기는 추후 운영진용 메뉴(설정/링크/도구)를 모아둘 공간이에요.
+          {/* 외부 링크 2 */}
+          <a
+            href="https://docs.google.com/spreadsheets/d/16kXhEch_y5-69sSA4bxa5xV0AefVNnFHl52NN9dWJ_A/edit?gid=659829463#gid=659829463"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-between py-3 text-sm hover:bg-zinc-50 rounded-md px-3"
+          >
+            <span>담당 업무</span>
+            <span className="text-zinc-400">↗</span>
+          </a>
         </div>
-      </div>
+      </CardSection>
     </div>
   );
 }

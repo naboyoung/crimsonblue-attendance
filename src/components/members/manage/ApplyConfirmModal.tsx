@@ -95,14 +95,14 @@ export function ApplyConfirmModal(props: ApplyConfirmModalProps) {
       const res = await fetch("/api/members/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(body), 
       });
 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok || !data?.ok) {
-        setErrorMsg(data?.message ?? "요청 처리에 실패했습니다.");
-        return;
+        throw new Error(data?.message ?? '요청 처리 실패 (${res.status})');
+        
       }
 
       onApplied?.();
@@ -115,7 +115,7 @@ export function ApplyConfirmModal(props: ApplyConfirmModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-end bg-black/40 pb-16">
       <div className="w-full rounded-t-2xl bg-white p-5">
         {/* Header */}
         <div className="text-lg font-bold text-zinc-900">

@@ -5,15 +5,22 @@ import { useRouter } from "next/navigation";
 
 import { MemberListPanel } from "@/components/members/MemberListPanel";
 import { MemberProfileSheet } from "@/components/members/MemberProfileSheet";
-import {
-  MemberRoleFilterChips,
-  ROLES,
-  type Role,
-  type MemberFilter,
-} from "@/components/members/MemberRoleFilterChips";
 import type { Member } from "@/components/members/MemberCard";
 
+import AutocompleteInput from "@/components/ui/AutocompleteInput";
+import Segmented from "@/components/ui/Segmented";
+
 type ViewState = "idle" | "loading" | "empty" | "results" | "error";
+
+type FilterValue =
+  | "운영진"
+  | "정회원"
+  | "준회원"
+  | "신입"
+  | "휴면"
+  | "탈퇴";
+
+type SegValue = "" | FilterValue;
 
 export default function MembersLookupPage() {
   const router = useRouter();
@@ -22,7 +29,7 @@ export default function MembersLookupPage() {
    * Search / Filter State
    * ===================== */
   const [name, setName] = useState("");
-  const [selectedFilters, setSelectedFilters] = useState<MemberFilter[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState<FilterValue | null>(null);
 
   /* =====================
    * Result State
@@ -38,59 +45,29 @@ export default function MembersLookupPage() {
   const [activeMember, setActiveMember] = useState<Member | null>(null);
 
   /* =====================
-   * Autocomplete State
+   * Autocomplete Suggestions
    * ===================== */
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [suggestOpen, setSuggestOpen] = useState(false);
-  const debounceRef = useRef<number | null>(null);
 
   /* =====================
-   * Filter Parsing
+   * Debounce refs
    * ===================== */
-  const newbieSelected = useMemo(
-    () => selectedFilters.includes("신입"),
-    [selectedFilters]
-  );
+  const searchDebounceRef = useRef<number | null>(null);
+  const suggestDebounceRef = useRef<number | null>(null);
 
-  const selectedRolesOnly = useMemo(
-    () => selectedFilters.filter((f) => f !== "신입") as Role[],
-    [selectedFilters]
-  );
-
+  /* =====================
+   * Filter parsing
+   * ===================== */
+  const isNewbie = selectedFilter === "신입";
   const rolesParam = useMemo(() => {
-    if (selectedRolesOnly.length === 0) return null;
-    return selectedRolesOnly.join(",");
-  }, [selectedRolesOnly]);
-
-  /* =====================
-   * Navigation
-   * ===================== */
-  const goBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/");
-    }
-  };
+    if (!selectedFilter) return null;
+    if (selectedFilter === "신입") return null; // role이 아니라 별도 파라미터
+    return selectedFilter; // 단일 role
+  }, [selectedFilter]);
 
   /* =====================
    * Actions
    * ===================== */
-  const resetAll = () => {
-    setName("");
-    setSelectedFilters([]);
-    setMembers([]);
-    setSuggestions([]);
-    setSuggestOpen(false);
-    setState("idle");
-    setErrorMessage(undefined);
-    setSheetOpen(false);
-    setActiveMember(null);
-  };
-
-  const onClickAll = () => {
-    setSelectedFilters([...ROLES]); // role 전체 선택, 신입 제외
-  };
 
   const openMember = (m: Member) => {
     setActiveMember(m);
@@ -108,10 +85,10 @@ export default function MembersLookupPage() {
   const runSearch = useCallback(async () => {
     const q = name.trim();
     const hasName = q.length > 0;
-    const hasRoles = selectedRolesOnly.length > 0;
-    const hasNewbie = newbieSelected;
+    const hasFilter = selectedFilter !== null;
 
-    if (!hasName && !hasRoles && !hasNewbie) {
+    // ✅ A안: 아무것도 입력/선택 없으면 idle(안내)
+    if (!hasName && !hasFilter) {
       setMembers([]);
       setState("idle");
       setErrorMessage(undefined);
@@ -125,7 +102,7 @@ export default function MembersLookupPage() {
       const params = new URLSearchParams();
       if (hasName) params.set("name", q);
       if (rolesParam) params.set("roles", rolesParam);
-      if (hasNewbie) params.set("newbie", "1");
+      if (isNewbie) params.set("newbie", "1");
 
       const res = await fetch(`/api/members/lookup?${params.toString()}`);
       const data = await res.json();
@@ -142,38 +119,40 @@ export default function MembersLookupPage() {
       setState("error");
       setErrorMessage(e instanceof Error ? e.message : "Unknown error");
     }
-  }, [name, rolesParam, selectedRolesOnly.length, newbieSelected]);
+  }, [name, selectedFilter, rolesParam, isNewbie]);
 
   /* =====================
-   * Auto-search on Filter Change
+   * Live search (name/filter change) with debounce
    * ===================== */
   useEffect(() => {
-    const q = name.trim();
-    const hasName = q.length > 0;
-    const hasFilters = selectedFilters.length > 0;
+    if (searchDebounceRef.current) window.clearTimeout(searchDebounceRef.current);
 
-    if (!hasName && !hasFilters) return;
-    runSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFilters]);
+    // ✅ 타이핑/필터 변경 후 디바운스 검색
+    searchDebounceRef.current = window.setTimeout(() => {
+      runSearch();
+    }, 280);
+
+    return () => {
+      if (searchDebounceRef.current) window.clearTimeout(searchDebounceRef.current);
+    };
+  }, [name, selectedFilter, runSearch]);
 
   /* =====================
-   * Autocomplete (Name)
+   * Suggestions (Name prefix)
    * ===================== */
   useEffect(() => {
     const q = name.trim();
 
     if (!q) {
       setSuggestions([]);
-      setSuggestOpen(false);
       return;
     }
 
-    if (debounceRef.current) {
-      window.clearTimeout(debounceRef.current);
+    if (suggestDebounceRef.current) {
+      window.clearTimeout(suggestDebounceRef.current);
     }
 
-    debounceRef.current = window.setTimeout(async () => {
+    suggestDebounceRef.current = window.setTimeout(async () => {
       try {
         const params = new URLSearchParams();
         params.set("prefix", q);
@@ -185,113 +164,109 @@ export default function MembersLookupPage() {
 
         const list = (data.suggestions ?? []) as string[];
         setSuggestions(list);
-        setSuggestOpen(list.length > 0);
       } catch {
         setSuggestions([]);
-        setSuggestOpen(false);
       }
     }, 250);
 
     return () => {
-      if (debounceRef.current) {
-        window.clearTimeout(debounceRef.current);
+      if (suggestDebounceRef.current) {
+        window.clearTimeout(suggestDebounceRef.current);
       }
     };
   }, [name]);
 
-  const pickSuggestion = (s: string) => {
-    setName(s);
-    setSuggestOpen(false);
-    setSuggestions([]);
-    runSearch();
+  /* =====================
+   * Segmented options
+   * ===================== */
+  const filterOptions = [
+    { label: "운영진", value: "운영진" },
+    { label: "정회원", value: "정회원" },
+    { label: "준회원", value: "준회원" },
+    { label: "신입", value: "신입" },
+    { label: "휴면", value: "휴면" },
+    { label: "탈퇴", value: "탈퇴" },
+  ] as const;
+
+  const onPick = (v: FilterValue) => {
+    setSelectedFilter((prev) => (prev === v ? null : v)); // 택1이지만 "해제"는 허용
   };
+
+  /* =====================
+   * Hint text
+   * ===================== */
+  const hint = useMemo(() => {
+    const q = name.trim();
+    if (!q && !selectedFilter) return "이름을 검색하거나 필터를 선택해 주세요.";
+    if (q && selectedFilter) return "이름 검색 결과에 선택한 필터가 적용됩니다.";
+    if (q) return "이름 입력에 따라 회원 목록이 실시간으로 표시됩니다.";
+    // filter only
+    if (selectedFilter === "신입") return "신입 회원 목록을 표시합니다.";
+    return "선택한 조건에 해당하는 회원 목록을 표시합니다.";
+  }, [name, selectedFilter]);
+
+  const segValue: SegValue = selectedFilter ?? "";
 
   /* =====================
    * Render
    * ===================== */
   return (
     <div className="mx-auto min-h-dvh max-w-md bg-[rgb(var(--bg))] px-4 pb-10 text-[rgb(var(--fg))]">
+      {/* 상단 헤더는 기존 프로젝트 구조에 따라 다른 컴포넌트가 있을 수 있어
+         여기서는 페이지 단 파일만 기준으로 유지 (goBack은 필요 시 연결) */}
 
-      {/* Search / Filter */}
-      <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="relative flex items-center gap-2">
-          <div className="flex-1">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onFocus={() => suggestions.length && setSuggestOpen(true)}
-              onBlur={() => setTimeout(() => setSuggestOpen(false), 120)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") runSearch();
-              }}
-              placeholder="이름으로 검색"
-              className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:ring-2 focus:ring-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-zinc-700"
-            />
-
-            {/* Autocomplete */}
-            {suggestOpen && suggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-[44px] z-20 rounded-2xl border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
-                {suggestions.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className="w-full rounded-xl px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50 dark:text-zinc-100 dark:hover:bg-zinc-900/30"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => pickSuggestion(s)}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
+      {/* ✅ 통합 카드(검색/필터 + 결과) */}
+      <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4">
+        {/* Section title + description (출석등록 톤에 맞춰 추후 CardSection 컴포넌트로 통일 가능) */}
+        <div className="mb-3">
+          <div className="text-base font-semibold">회원 조회</div>
+          <div className="mt-1 text-xs text-zinc-500">
+            이름 검색 또는 필터로 회원 정보를 확인할 수 있어요.
           </div>
+        </div>
 
-          <button
-            type="button"
-            onClick={runSearch}
-            className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 transition dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-          >
-            검색
-          </button>
+        {/* Search */}
+        <div className="space-y-2">
+          <AutocompleteInput
+            value={name}
+            onChange={setName}
+            options={suggestions}
+            placeholder="이름으로 검색"
+            noResultsText="검색 결과가 없습니다."
+          />
         </div>
 
         {/* Filters */}
-        <div className="mt-3">
-          <MemberRoleFilterChips
-            selectedFilters={selectedFilters}
-            onChangeSelectedFilters={setSelectedFilters}
-            onClickAll={onClickAll}
-            onClickReset={resetAll}
+        <div className="mt-3 space-y-2">
+          <Segmented
+            scroll
+            mode = "single"
+            value={segValue}
+            options={filterOptions as unknown as { label: string; value: SegValue}[]}
+            onChange={(v) => {
+              if (v === "") return;
+              setSelectedFilter((prev) => (prev === v ? null : (v as FilterValue)));
+            }}       
           />
         </div>
 
         {/* Hint */}
-        <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-          {name.trim()
-            ? "이름 검색 결과에 필터가 적용됩니다."
-            : selectedFilters.length
-            ? newbieSelected && selectedFilters.length === 1
-              ? "신입 회원 목록을 표시합니다."
-              : "선택한 조건에 해당하는 회원 목록을 표시합니다."
-            : "이름을 검색하거나 필터를 선택해 주세요."}
+        <div className="mt-2 text-xs text-zinc-500">{hint}</div>
+
+        {/* Results */}
+        <div className="mt-4">
+          <MemberListPanel
+            state={state}
+            members={members}
+            onClickMember={openMember}
+            errorMessage={errorMessage}
+            onRetry={runSearch}
+          />
         </div>
       </div>
 
-      {/* Results */}
-      <MemberListPanel
-        state={state}
-        members={members}
-        onClickMember={openMember}
-        errorMessage={errorMessage}
-        onRetry={runSearch}
-      />
-
       {/* Bottom Sheet */}
-      <MemberProfileSheet
-        open={sheetOpen}
-        member={activeMember}
-        onClose={closeSheet}
-      />
+      <MemberProfileSheet open={sheetOpen} member={activeMember} onClose={closeSheet} />
     </div>
   );
 }

@@ -122,6 +122,28 @@ function toISODateFromDot(dateRaw: string) {
   return `${y}-${pad2(m)}-${pad2(d)}`;
 }
 
+/* =====================
+ * Newbie helpers (프론트와 동일 기준: 최근 0~5개월)
+ * join_date: "YYYY-MM"
+ * ===================== */
+function parseJoinDateYM(joinDate: string): { y: number; m: number } | null {
+  const s = String(joinDate ?? "").trim();
+  const match = /^(\d{4})-(\d{2})$/.exec(s);
+  if (!match) return null;
+  return { y: Number(match[1]), m: Number(match[2]) };
+}
+
+function isNewbieByJoinDate(joinDate?: string) {
+  const jm = parseJoinDateYM(joinDate ?? "");
+  if (!jm) return false;
+
+  const now = getKSTDateParts();
+  const diff = now.y * 12 + now.m - (jm.y * 12 + jm.m);
+
+  // 프론트와 동일: 0~5개월(포함)
+  return diff >= 0 && diff <= 5;
+}
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -130,10 +152,13 @@ export async function GET(req: Request) {
     const rolesParam = (url.searchParams.get("roles") ?? "").trim();
     const attendanceUnder = (url.searchParams.get("attendance_under") ?? "").trim(); // quarter|half
 
+    const newbieParam = (url.searchParams.get("newbie") ?? "").trim().toLowerCase();
+    const newbieOnly = newbieParam === "1" || newbieParam === "true";
+
     // 1) Members 로드
     const { rows: members } = await readSheetAsRows(MEMBERS_SHEET, "A1:Z");
 
-    // 2) 기본 필터: name / roles
+    // 2) 기본 필터: name / roles / newbie
     let filtered = members;
 
     if (name) {
@@ -142,6 +167,14 @@ export async function GET(req: Request) {
 
     if (rolesParam) {
       filtered = filtered.filter((m) => (m["role"] ?? "").trim() === rolesParam);
+    }
+
+    if (newbieOnly) {
+      filtered = filtered.filter((m) => {
+        const role = (m["role"] ?? "").trim();
+        if (role == "탈퇴") return false;
+        return isNewbieByJoinDate(m["join_date"]);
+      });
     }
 
     // 3) 출석 미달 필터
@@ -187,6 +220,7 @@ export async function GET(req: Request) {
           return total < 3;
         }
 
+        // half
         if (role !== "준회원") return false;
         return total < 4;
       });
@@ -205,7 +239,7 @@ export async function GET(req: Request) {
           phone_number: string;
           school: string;
           level: string;
-          
+
           gender: string;
           birth_year: string;
           region: string;
@@ -239,7 +273,7 @@ export async function GET(req: Request) {
       })
       .filter((m) => m.member_id && m.name && m.role);
 
-    return NextResponse.json({ ok: true, members: result, });
+    return NextResponse.json({ ok: true, members: result });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ ok: false, message: msg }, { status: 500 });

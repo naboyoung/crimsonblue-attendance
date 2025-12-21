@@ -1,6 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
+import { Badge } from "@/components/ui/Badge";
+import { meetingTypeToVariant } from "@/lib/ui/badgeVariants";
 
 type AttendanceConfirmPayload = {
   date: string;
@@ -24,15 +26,6 @@ type Props = {
   payload: AttendanceConfirmPayload;
 };
 
-// ✅ A안: meetingType 뱃지 색상
-function meetingTypeBadgeClass(meetingType: string) {
-  const t = String(meetingType ?? '').trim();
-  if (t === '정기모임') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if (t === '대관행사') return 'bg-blue-50 text-blue-700 border-blue-200';
-  if (t === '기타') return 'bg-slate-100 text-slate-700 border-slate-200';
-  return 'bg-slate-100 text-slate-700 border-slate-200';
-}
-
 export default function AttendanceConfirmModal({
   open,
   onClose,
@@ -44,22 +37,24 @@ export default function AttendanceConfirmModal({
   React.useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") onClose();
     };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
   if (!open) return null;
 
-  const memo = String(payload.description ?? '').trim();
+  const memo = String(payload.description ?? "").trim();
   const hasMemo = memo.length > 0;
 
   // 참석자 요약
   const total = payload.attendees.length;
-  const normal = payload.attendees.filter((a) => a.attendanceType === '정상').length;
-  const late = payload.attendees.filter((a) => a.attendanceType === '지각').length;
-  const absent = payload.attendees.filter((a) => a.attendanceType === '불참').length;
+  const normal = payload.attendees.filter((a) => a.attendanceType === "정상").length;
+  const late = payload.attendees.filter((a) => a.attendanceType === "지각").length;
+  const absent = payload.attendees.filter((a) => a.attendanceType === "불참").length;
+
+  const meetingTypeText = String(payload.meetingType ?? "").trim();
 
   return (
     <div
@@ -108,21 +103,14 @@ export default function AttendanceConfirmModal({
 
               <div className="space-y-1">
                 <div className="text-xs text-slate-500">회차</div>
-                <div className="text-sm font-semibold text-slate-900">
-                  {payload.sessionId}회
-                </div>
+                <div className="text-sm font-semibold text-slate-900">{payload.sessionId}회</div>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={[
-                  'rounded-full border px-2 py-0.5 text-xs font-semibold',
-                  meetingTypeBadgeClass(payload.meetingType),
-                ].join(' ')}
-              >
-                {payload.meetingType}
-              </span>
+              <Badge variant={meetingTypeToVariant(meetingTypeText)}>
+                {meetingTypeText || "기타"}
+              </Badge>
               <div className="text-sm text-slate-700">{payload.gymName}</div>
             </div>
 
@@ -131,9 +119,7 @@ export default function AttendanceConfirmModal({
             {hasMemo && (
               <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
                 <div className="text-xs font-semibold text-slate-700">메모</div>
-                <div className="mt-1 whitespace-pre-wrap text-sm text-slate-700">
-                  {memo}
-                </div>
+                <div className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{memo}</div>
               </div>
             )}
           </div>
@@ -142,9 +128,7 @@ export default function AttendanceConfirmModal({
 
           {/* 참석자 요약 + 목록 */}
           <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-slate-900">
-              참석자 {total}명
-            </div>
+            <div className="text-sm font-semibold text-slate-900">참석자 {total}명</div>
             <div className="text-xs text-slate-600">
               정상 {normal} · 지각 {late} · 불참 {absent}
             </div>
@@ -173,19 +157,12 @@ export default function AttendanceConfirmModal({
                   </thead>
                   <tbody className="text-slate-800">
                     {payload.attendees.map((a, idx) => (
-                      <tr
-                        key={idx}
-                        className="border-b border-slate-100 last:border-b-0"
-                      >
-                        <td className="px-3 py-2 text-center font-medium text-slate-900 truncate">
+                      <tr key={idx} className="border-b border-slate-100 last:border-b-0">
+                        <td className="truncate px-3 py-2 text-center font-medium text-slate-900">
                           {a.name}
                         </td>
-                        <td className="px-3 py-2 text-center text-slate-700">
-                          {a.preregistered}
-                        </td>
-                        <td className="px-3 py-2 text-center text-slate-700">
-                          {a.attendanceType}
-                        </td>
+                        <td className="px-3 py-2 text-center text-slate-700">{a.preregistered}</td>
+                        <td className="px-3 py-2 text-center text-slate-700">{a.attendanceType}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -195,7 +172,7 @@ export default function AttendanceConfirmModal({
           )}
         </div>
 
-        {/* ✅ Footer (수정된 부분) */}
+        {/* Footer */}
         <div className="border-t border-slate-200 px-4 py-3">
           <div className="flex gap-2">
             <button
@@ -212,15 +189,15 @@ export default function AttendanceConfirmModal({
               onClick={onConfirm}
               disabled={submitting || total === 0}
               className={[
-                'h-11 flex-1 rounded-xl text-sm font-semibold transition active:scale-[0.98]',
-                'focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2',
+                "h-11 flex-1 rounded-xl text-sm font-semibold transition active:scale-[0.98]",
+                "focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2",
                 submitting || total === 0
-                  ? 'cursor-not-allowed bg-slate-200 text-slate-400'
-                  : 'bg-slate-900 text-white shadow-sm hover:opacity-90',
-              ].join(' ')}
-              title={total === 0 ? '참석자를 추가해주세요' : undefined}
+                  ? "cursor-not-allowed bg-slate-200 text-slate-400"
+                  : "bg-slate-900 text-white shadow-sm hover:opacity-90",
+              ].join(" ")}
+              title={total === 0 ? "참석자를 추가해주세요" : undefined}
             >
-              {submitting ? '저장 중…' : '최종 등록'}
+              {submitting ? "저장 중…" : "최종 등록"}
             </button>
           </div>
         </div>

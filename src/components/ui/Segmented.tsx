@@ -8,6 +8,7 @@ type BaseProps<T extends string> = {
   options: Option<T>[];
   className?: string;
   disabled?: boolean;
+  scroll?: boolean;
 };
 
 type SingleProps<T extends string> = BaseProps<T> & {

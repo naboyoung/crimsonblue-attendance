@@ -7,6 +7,7 @@ const PRIVATE_KEY = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
 
 const MEMBERS_SHEET = "Members";
 const ATTENDANCE_SHEET = "AttendanceHistory";
+const MEMBER_INFO_HISTORY_SHEET = "MemberInfoHistory";
 
 type MemberRole = "운영진" | "정회원" | "준회원" | "휴면" | "탈퇴";
 type MemberRow = Record<string, string>;
@@ -124,6 +125,102 @@ function toISODateFromDot(dateRaw: string) {
   return `${y}-${pad2(m)}-${pad2(d)}`;
 }
 
+/** =========================================
+ * ✅ 컬럼 인덱스 → A1 컬럼 문자(A~Z)
+ *  - 현재 range가 A1:Z라서 A~Z만 처리
+ * ========================================= */
+function colIndexToA1(colIndex: number) {
+  // 0->A, 1->B ... 25->Z
+  if (colIndex < 0 || colIndex > 25) {
+    throw new Error("현재 구현은 A~Z까지만 지원합니다.(A1:Z 범위 기준)");
+  }
+  return String.fromCharCode("A".charCodeAt(0) + colIndex);
+}
+
+/** =========================================
+ * ✅ member_id 행 찾아서 patch 컬럼만 업데이트
+ * ========================================= */
+async function updateMemberRowById(memberId: string, patch: Record<string, string>) {
+  const sheets = getSheetsClient();
+
+  const { headers, rows } = await readSheetAsRows(MEMBERS_SHEET, "A1:Z");
+  const idCol = headers.indexOf("member_id");
+  if (idCol < 0) throw new Error("Members 시트에 member_id 컬럼이 없습니다.");
+
+  const rowIndex = rows.findIndex((r) => (r["member_id"] ?? "").trim() === memberId.trim());
+  if (rowIndex < 0) throw new Error(`member_id=${memberId} 를 찾을 수 없습니다.`);
+
+  // header가 1행이므로 데이터 첫 행은 2행
+  const sheetRowNumber = rowIndex + 2;
+
+  const data: { range: string; values: string[][] }[] = [];
+
+  for (const [key, value] of Object.entries(patch)) {
+    const col = headers.indexOf(key);
+    if (col < 0) continue; // 시트에 없는 컬럼이면 무시(안전)
+    const colLetter = colIndexToA1(col);
+    data.push({
+      range: `${MEMBERS_SHEET}!${colLetter}${sheetRowNumber}`,
+      values: [[String(value ?? "")]],
+    });
+  }
+
+  if (data.length === 0) {
+    throw new Error("반영할 컬럼이 없습니다. (시트 헤더와 patch 키를 확인하세요)");
+  }
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: SHEET_ID!,
+    requestBody: {
+      valueInputOption: "RAW",
+      data,
+    },
+  });
+}
+
+/** =========================================
+ * ✅ KST 시간 문자열 / history_id / appendRows
+ * ========================================= */
+function nowKSTString() {
+  // "YYYY-MM-DD HH:mm:ss" (KST)
+  const d = new Date();
+  const parts = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(d);
+
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}:${get("second")}`;
+}
+
+function makeHistoryId() {
+  // 예: H20251221-113012-4821
+  const stamp = nowKSTString().replace(/[-:\s]/g, ""); // YYYYMMDDHHmmss
+  const rnd = Math.floor(Math.random() * 10000)
+    .toString()
+    .padStart(4, "0");
+  return `H${stamp}-${rnd}`;
+}
+
+async function appendRows(sheetName: string, rows: (string | number)[][]) {
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID!,
+    range: `${sheetName}!A1`,
+    valueInputOption: "RAW",
+    insertDataOption: "INSERT_ROWS",
+    requestBody: { values: rows },
+  });
+}
+
+/** ======================================================
+ * ✅ GET: (기존 조회 로직)
+ * ====================================================== */
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -211,19 +308,16 @@ export async function GET(req: Request) {
           name: string;
           role: string;
 
-          // ✅ 조회 카드에서 필요한 값들
           phone_number: string;
           school: string;
           level: string;
 
-          // ✅ 출석 미달 필터 때만
           total_score?: number;
         } = {
           member_id,
           name: (m["name"] ?? "").trim(),
           role: (m["role"] ?? "").trim(),
 
-          // ✅ 추가
           phone_number: (m["phone_number"] ?? "").trim(),
           school: (m["school"] ?? "").trim(),
           level: (m["level"] ?? "").trim(),
@@ -238,6 +332,180 @@ export async function GET(req: Request) {
       .filter((m) => m.member_id && m.name && m.role);
 
     return NextResponse.json({ ok: true, members: result });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    return NextResponse.json({ ok: false, message: msg }, { status: 500 });
+  }
+}
+
+/** ======================================================
+ * ✅ POST: 회원관리 변경사항 반영 + MemberInfoHistory 로그 남기기
+ *
+ * ✅ 프론트(ApplyConfirmModal) body:
+ * - ROLE_STATUS:
+ *   { kind:"ROLE_STATUS", action, targetMemberIds:[], changedBy }
+ * - PROFILE_EDIT:
+ *   { kind:"PROFILE_EDIT", action, targetMemberIds:[], payload:{ newValue }, changedBy }
+ * ====================================================== */
+export async function POST(req: Request) {
+  try {
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json({ ok: false, message: "Invalid JSON" }, { status: 400 });
+    }
+
+    const mode = (body.kind ?? body.mode) as "ROLE_STATUS" | "PROFILE_EDIT"; // ✅ kind 우선
+    const action = String(body.action ?? "").trim();
+    const changedBy = String(body.changedBy ?? "").trim();
+
+    const targetMemberIds = Array.isArray(body.targetMemberIds)
+      ? (body.targetMemberIds as string[]).map((v) => String(v ?? "").trim()).filter(Boolean)
+      : [];
+
+    const afterValue =
+      mode === "PROFILE_EDIT" ? String(body.payload?.newValue ?? "").trim() : "";
+
+    if (!mode) {
+      return NextResponse.json({ ok: false, message: "mode(kind)가 없습니다." }, { status: 400 });
+    }
+    if (!action) {
+      return NextResponse.json({ ok: false, message: "action이 없습니다." }, { status: 400 });
+    }
+    if (!changedBy) {
+      return NextResponse.json(
+        { ok: false, message: "changedBy(운영진 이름)가 없습니다." },
+        { status: 400 }
+      );
+    }
+    if (!Array.isArray(targetMemberIds) || targetMemberIds.length === 0) {
+      return NextResponse.json(
+        { ok: false, message: "targetMemberIds가 없습니다." },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Members 1번 로드해서 before_value + name 확보
+    const { rows: members } = await readSheetAsRows(MEMBERS_SHEET, "A1:Z");
+    const memberMap = new Map<string, MemberRow>();
+    for (const m of members) {
+      const id = String(m["member_id"] ?? "").trim();
+      if (id) memberMap.set(id, m);
+    }
+
+    const changedAt = nowKSTString();
+
+    // ✅ ROLE_STATUS: role 업데이트 + History append
+    if (mode === "ROLE_STATUS") {
+      const actionToRole: Record<string, MemberRole | null> = {
+        PROMOTE_TO_STAFF: "운영진",
+        DEMOTE_FROM_STAFF: "정회원",
+        SET_ASSOCIATE: "준회원",
+        UNSET_ASSOCIATE_TO_REGULAR: "정회원",
+        SET_DORMANT: "휴면",
+        UNSET_DORMANT_TO_REGULAR: "정회원",
+        SET_WITHDRAWN: "탈퇴",
+      };
+
+      const nextRole = actionToRole[action];
+      if (!nextRole) {
+        return NextResponse.json(
+          { ok: false, message: `지원하지 않는 action: ${action}` },
+          { status: 400 }
+        );
+      }
+
+      const historyRows: (string | number)[][] = [];
+
+      for (const memberId of targetMemberIds) {
+        const row = memberMap.get(memberId);
+        const name = String(row?.["name"] ?? "").trim();
+        const beforeRole = String(row?.["role"] ?? "").trim();
+
+        await updateMemberRowById(memberId, {
+          role: nextRole,
+          last_updated_at: new Date().toISOString(),
+        });
+
+        // history_id | member_id | name | action_type | action_detail | before_value | after_value | changed_by | changed_at | note
+        historyRows.push([
+          makeHistoryId(),
+          memberId,
+          name,
+          "ROLE_STATUS",
+          action,
+          beforeRole,
+          nextRole,
+          changedBy,
+          changedAt,
+          "",
+        ]);
+      }
+
+      await appendRows(MEMBER_INFO_HISTORY_SHEET, historyRows);
+      return NextResponse.json({ ok: true });
+    }
+
+    // ✅ PROFILE_EDIT: 특정 필드 업데이트 + History append
+    if (mode === "PROFILE_EDIT") {
+      if (targetMemberIds.length !== 1) {
+        return NextResponse.json(
+          { ok: false, message: "개인정보 수정은 1명만 선택할 수 있습니다." },
+          { status: 400 }
+        );
+      }
+      if (!afterValue) {
+        return NextResponse.json(
+          { ok: false, message: "변경값(payload.newValue)이 비어있습니다." },
+          { status: 400 }
+        );
+      }
+
+      const actionToField: Record<string, "phone_number" | "region" | "level" | null> = {
+        UPDATE_PHONE: "phone_number",
+        UPDATE_REGION: "region",
+        UPDATE_LEVEL: "level",
+      };
+
+      const field = actionToField[action];
+      if (!field) {
+        return NextResponse.json(
+          { ok: false, message: `지원하지 않는 action: ${action}` },
+          { status: 400 }
+        );
+      }
+
+      const memberId = targetMemberIds[0];
+      const row = memberMap.get(memberId);
+      const name = String(row?.["name"] ?? "").trim();
+      const before = String(row?.[field] ?? "").trim();
+
+      await updateMemberRowById(memberId, {
+        [field]: afterValue,
+        last_updated_at: new Date().toISOString(),
+      } as Record<string, string>);
+
+      await appendRows(MEMBER_INFO_HISTORY_SHEET, [
+        [
+          makeHistoryId(),
+          memberId,
+          name,
+          "PROFILE_EDIT",
+          action,
+          before,
+          afterValue,
+          changedBy,
+          changedAt,
+          "",
+        ],
+      ]);
+
+      return NextResponse.json({ ok: true });
+    }
+
+    return NextResponse.json(
+      { ok: false, message: "지원하지 않는 mode(kind)" },
+      { status: 400 }
+    );
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ ok: false, message: msg }, { status: 500 });

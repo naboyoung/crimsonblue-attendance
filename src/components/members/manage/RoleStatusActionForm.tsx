@@ -101,7 +101,7 @@ export function RoleStatusActionForm({ selectedRoles, value, onChange }: Props) 
                 key={a}
                 type="button"
                 onClick={() => onChange(active ? null : a)}
-                className={`rounded-xl border px-3 py-3 text-left transition ${
+                className={`rounded-xl border px-3 py-3 text-center transition ${
                   active ? "border-zinc-900 bg-zinc-50" : "border-zinc-200 bg-white hover:bg-zinc-50"
                 }`}
               >

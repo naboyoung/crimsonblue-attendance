@@ -85,7 +85,7 @@ export function ProfileEditForm(props: {
               key={f.key}
               type="button"
               onClick={() => onChangeAction(f.key)}
-              className={`rounded-xl border px-3 py-3 text-left transition ${
+              className={`rounded-xl border px-3 py-3 text-center transition ${
                 active ? "border-zinc-900 bg-zinc-50" : "border-zinc-200 bg-white hover:bg-zinc-50"
               }`}
             >

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { ManageModeTabs, type ManageMode } from "@/components/members/manage/ManageModeTabs";
 import {
   TargetMemberPicker,
   type PickMember,
@@ -25,6 +24,8 @@ type CurrentProfile = {
   region?: string;
   level?: string;
 };
+
+type ManageMode = "ROLE_STATUS" | "PROFILE_EDIT";
 
 const PROFILE_ACTION_LABEL: Record<ProfileEditAction, string> = {
   UPDATE_PHONE: "연락처 변경",
@@ -161,7 +162,7 @@ export default function MembersManagePage() {
   }, [mode, selectedMembers.length, roleAction, profileLoading, canApplyProfileEdit]);
 
   return (
-    <div className="mx-auto max-w-md px-4 pb-24">
+    <div className="mx-auto max-w-md px-4 pb-34">
       {/* ✅ Toast */}
       {toast && (
         <div className="fixed top-4 left-0 right-0 z-[60] flex justify-center px-4">
@@ -171,9 +172,43 @@ export default function MembersManagePage() {
         </div>
       )}
 
-      {/* Mode Tabs */}
-      <div className="mt-4">
-        <ManageModeTabs mode={mode} onChange={onChangeMode} />
+      {/* 압축 헤더 + View Switcher */}
+      <div className="mt-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-fg">회원정보 관리</h2>
+          <p className="text-xs text-muted-foreground">
+            등급/상태 변경 및 개인정보 수정
+          </p>
+        </div>
+
+        {/* View Switcher */}
+        <div className="inline-flex shrink-0 rounded-md bg-muted p-0.5 text-xs">
+          <button
+            type="button"
+            onClick={() => onChangeMode("ROLE_STATUS")}
+            className={`px-3 py-2 rounded transition whitespace-nowrap
+              ${
+                mode === "ROLE_STATUS"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+          >
+            등급/상태
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onChangeMode("PROFILE_EDIT")}
+            className={`px-3 py-2 rounded transition whitespace-nowrap
+              ${
+                mode === "PROFILE_EDIT"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+          >
+            개인정보
+          </button>
+        </div>
       </div>
 
       {/* Target Picker */}
@@ -211,7 +246,7 @@ export default function MembersManagePage() {
       </div>
 
       {/* Bottom Action */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-zinc-200 bg-white p-4">
+      <div className="fixed bottom-16 left-0 right-0 border-t border-zinc-200 bg-white p-4">
         <button
           type="button"
           onClick={() => setConfirmOpen(true)}

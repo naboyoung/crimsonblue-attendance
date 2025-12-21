@@ -1,3 +1,5 @@
+import React from "react";
+
 export default function Card({
   className = "",
   ...props
@@ -5,8 +7,8 @@ export default function Card({
   return (
     <div
       className={[
-        "rounded-xl border border-border bg-card",
-        "shadow-soft",
+        // ✅ members/lookup/page의 카드 톤과 동일
+        "rounded-2xl border border-zinc-200 bg-white",
         className,
       ].join(" ")}
       {...props}
