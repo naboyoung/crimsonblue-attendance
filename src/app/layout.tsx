@@ -2,7 +2,7 @@ import "./globals.css";
 import BottomNav from "@/components/layout/BottomNav";
 import type { Metadata } from "next";
 
-/** ✅ 여기! RootLayout 위에 선언 */
+/** ✅ RootLayout 위 */
 export const metadata: Metadata = {
   title: "크림슨블루 출석부",
   description: "크림슨블루 클라이밍 크루 출석 관리",
@@ -18,14 +18,17 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
-        {/* iOS 대응용 메타 (metadata로는 부족함) */}
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        {/* ✅ iOS 홈화면 아이콘 (가장 중요) */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+        {/* iOS PWA 설정 */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"
         />
       </head>
+
       <body className="min-h-screen bg-bg text-fg antialiased pb-[calc(72px+env(safe-area-inset-bottom))]">
         {children}
         <BottomNav />
