@@ -23,7 +23,7 @@ export default function AttendanceOverviewLayout({
 
   return (
     <PageShell>
-      <div className="space-y-3">
+      <div className="mt-4 mx-auto max-w-md px-4 pb-24">
         {/* 출석현황 압축 헤더 */}
         <div className="flex items-center justify-between">
           <div>
@@ -36,7 +36,7 @@ export default function AttendanceOverviewLayout({
           </div>
 
           {/* View Switcher */}
-          <div className="inline-flex rounded-md bg-muted p-0.5 text-xs">
+          <div className="inline-flex rounded-md bg-muted p-0.5 text-xs -mt-1">
             <button
               type="button"
               onClick={() => router.push('/attendance/overview/session')}
@@ -66,7 +66,8 @@ export default function AttendanceOverviewLayout({
         </div>
 
         {/* 하위 페이지 */}
-        {children}
+        <div className="mt-6">{children}</div>
+        
       </div>
     </PageShell>
   );

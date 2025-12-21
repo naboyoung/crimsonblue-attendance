@@ -25,6 +25,7 @@ type Props = {
   date: string;
   memos: CalendarMemoRow[];
   onChanged: () => Promise<void> | void; // 저장/삭제 후 월 리프레시
+  onDeleted?: (memoId: string) => void; // ✅ 낙관적 삭제 콜백
 };
 
 const MEETING_TYPES = [
@@ -50,7 +51,14 @@ function emptyDraft(): Draft {
   return { meeting_type: "regular", assignee: "", gym_name: "", max_people: "" };
 }
 
-export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }: Props) {
+export function CalendarMemoSheet({
+  open,
+  onOpenChange,
+  date,
+  memos,
+  onChanged,
+  onDeleted,
+}: Props) {
   const [saving, setSaving] = React.useState(false);
 
   // ✅ 추가 폼 토글
@@ -180,9 +188,10 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
 
     setSaving(true);
     try {
-      const res = await fetch(`/api/calendar-memo?memo_id=${encodeURIComponent(memo_id)}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/calendar-memo?memo_id=${encodeURIComponent(memo_id)}`,
+        { method: "DELETE" }
+      );
 
       if (!res.ok) {
         const text = await res.text().catch(() => "");
@@ -190,6 +199,9 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
         alert(`삭제 실패 (${res.status})\n${text}`);
         return;
       }
+
+      // ✅ 낙관적 삭제: 즉시 화면에서 제거(부모 memoMap에서 해당 memo_id 제거)
+      onDeleted?.(memo_id);
 
       // 삭제하면 편집/메뉴 닫기
       if (editingId === memo_id) setEditingId(null);
@@ -240,7 +252,9 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <SheetHeader className="text-left">
-            <SheetTitle className="text-lg font-semibold text-black">일정 메모</SheetTitle>
+            <SheetTitle className="text-lg font-semibold text-black">
+              일정 메모
+            </SheetTitle>
             <SheetDescription className="text-sm text-black/60">
               {date} · 목록에서 관리하고, 우측 상단 +로 추가해요.
             </SheetDescription>
@@ -338,7 +352,9 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                 </div>
 
                 {!canCreate && (
-                  <div className="text-xs text-black/50">담당자는 필수입니다.</div>
+                  <div className="text-xs text-black/50">
+                    담당자는 필수입니다.
+                  </div>
                 )}
               </div>
             </div>
@@ -347,7 +363,9 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
           {/* ✅ 일정 목록 */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="font-semibold text-black">전체 일정 ({memos.length})</div>
+              <div className="font-semibold text-black">
+                전체 일정 ({memos.length})
+              </div>
             </div>
 
             {memos.length === 0 ? (
@@ -378,7 +396,9 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                             className="rounded-lg px-2 py-1 text-black/60 hover:bg-black/5 hover:text-black"
                             aria-label="메뉴"
                             onClick={() =>
-                              setOpenMenuId((cur) => (cur === m.memo_id ? null : m.memo_id))
+                              setOpenMenuId((cur) =>
+                                cur === m.memo_id ? null : m.memo_id
+                              )
                             }
                           >
                             ⋯
@@ -409,7 +429,8 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                       {!isEditing ? (
                         <div className="space-y-1">
                           <div className="text-sm font-semibold text-black">
-                            {typeLabel(m.meeting_type)} · {m.assignee || "(담당자 없음)"}
+                            {typeLabel(m.meeting_type)} ·{" "}
+                            {m.assignee || "(담당자 없음)"}
                           </div>
                           <div className="text-sm text-black/70">
                             {(m.gym_name || "암장 미정") +
@@ -447,7 +468,10 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                                 setEdits((p) => ({
                                   ...p,
-                                  [m.memo_id]: { ...d, assignee: e.target.value },
+                                  [m.memo_id]: {
+                                    ...d,
+                                    assignee: e.target.value,
+                                  },
                                 }))
                               }
                             />
@@ -460,7 +484,10 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                                 setEdits((p) => ({
                                   ...p,
-                                  [m.memo_id]: { ...d, gym_name: e.target.value },
+                                  [m.memo_id]: {
+                                    ...d,
+                                    gym_name: e.target.value,
+                                  },
                                 }))
                               }
                             />
@@ -471,7 +498,10 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                                 setEdits((p) => ({
                                   ...p,
-                                  [m.memo_id]: { ...d, max_people: e.target.value },
+                                  [m.memo_id]: {
+                                    ...d,
+                                    max_people: e.target.value,
+                                  },
                                 }))
                               }
                             />
@@ -491,7 +521,11 @@ export function CalendarMemoSheet({ open, onOpenChange, date, memos, onChanged }
                               size="sm"
                               disabled={saving || d.assignee.trim().length === 0}
                               onClick={() => updateMemo(m.memo_id)}
-                              title={d.assignee.trim().length === 0 ? "담당자는 필수입니다" : undefined}
+                              title={
+                                d.assignee.trim().length === 0
+                                  ? "담당자는 필수입니다"
+                                  : undefined
+                              }
                             >
                               저장
                             </Button>

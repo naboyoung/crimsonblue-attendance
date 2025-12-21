@@ -61,7 +61,9 @@ function Dot({ meetingType }: { meetingType: string }) {
   const cls = MEETING_TYPE_DOT_CLASS[meetingType] ?? "bg-gray-400";
   return (
     <span
-      className={["mt-[2px] inline-block", "h-3 w-[3px] rounded-full", cls].join(" ")}
+      className={["mt-[2px] inline-block", "h-3 w-[3px] rounded-full", cls].join(
+        " "
+      )}
     />
   );
 }
@@ -75,7 +77,9 @@ export function HomeCalendar() {
   const [loading, setLoading] = React.useState(false);
 
   const [sheetOpen, setSheetOpen] = React.useState(false);
-  const [selectedDate, setSelectedDate] = React.useState<string>(() => formatDate(new Date()));
+  const [selectedDate, setSelectedDate] = React.useState<string>(() =>
+    formatDate(new Date())
+  );
 
   // ✅ 롱프레스 타이머
   const pressTimerRef = React.useRef<number | null>(null);
@@ -112,9 +116,10 @@ export function HomeCalendar() {
   const refresh = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/calendar-memo?month=${encodeURIComponent(monthStr)}`, {
-        cache: "no-store",
-      });
+      const res = await fetch(
+        `/api/calendar-memo?month=${encodeURIComponent(monthStr)}`,
+        { cache: "no-store" }
+      );
       const json = await res.json();
       setMemoMap(json?.data ?? {});
     } finally {
@@ -191,9 +196,6 @@ export function HomeCalendar() {
           const isToday = isSameDay(d, today);
           const isSelected = selectedDate === dateStr;
 
-          // ✅ 표시 규칙
-          // - 1개: (| 담당자) / (  암장명)  -> 둘 다 줄바꿈 허용
-          // - 2개 이상: (| 담당자) 2줄 (+N 선택) -> 담당자 줄바꿈 허용
           const content =
             memos.length === 0 ? null : memos.length === 1 ? (
               <div className="mt-1 space-y-0.5">
@@ -223,7 +225,9 @@ export function HomeCalendar() {
                 ))}
 
                 {memos.length > 2 && (
-                  <div className="text-[9px] leading-tight text-fg/50">+{memos.length - 2}</div>
+                  <div className="text-[9px] leading-tight text-fg/50">
+                    +{memos.length - 2}
+                  </div>
                 )}
               </div>
             );
@@ -232,9 +236,7 @@ export function HomeCalendar() {
             <button
               key={dateStr}
               type="button"
-              // ✅ 탭 = 선택만
               onClick={() => setSelectedDate(dateStr)}
-              // ✅ 롱프레스 = 바텀시트 오픈
               onPointerDown={(e) => {
                 if (e.button !== 0) return;
                 startLongPress(dateStr);
@@ -252,7 +254,6 @@ export function HomeCalendar() {
                 "active:scale-[0.995]",
                 inMonth ? "" : "opacity-55",
                 isToday ? "border-brand/50 ring-1 ring-brand/40 bg-brand/5" : "",
-                // ✅ 선택 강조(탭 시)
                 isSelected ? "bg-white/10 border-white/25" : "",
               ].join(" ")}
             >
@@ -263,16 +264,15 @@ export function HomeCalendar() {
                     isToday
                       ? "text-brand"
                       : isSunday(d)
-                        ? "text-red-500"
-                        : isSaturday(d)
-                          ? "text-red-500"
-                          : "text-fg/90",
+                      ? "text-red-500"
+                      : isSaturday(d)
+                      ? "text-red-500"
+                      : "text-fg/90",
                   ].join(" ")}
                 >
                   {d.getDate()}
                 </div>
 
-                {/* ✅ 우측 영역은 항상 동일 폭 */}
                 <div className="w-4 text-right text-[10px] text-fg/50">
                   {memos.length > 0 ? memos.length : ""}
                 </div>
@@ -301,6 +301,19 @@ export function HomeCalendar() {
         onOpenChange={setSheetOpen}
         date={selectedDate}
         memos={memoMap[selectedDate] ?? []}
+        onDeleted={(memoId) => {
+          setMemoMap((prev) => {
+            const list = prev[selectedDate] ?? [];
+            const nextList = list.filter((m) => m.memo_id !== memoId);
+
+            if (nextList.length === 0) {
+              const { [selectedDate]: _removed, ...rest } = prev;
+              return rest;
+            }
+
+            return { ...prev, [selectedDate]: nextList };
+          });
+        }}
         onChanged={async () => {
           await refresh();
         }}

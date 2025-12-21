@@ -71,9 +71,9 @@ function AttendeeTableBox({
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
       <div className="grid grid-cols-3 gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-        <div>이름</div>
-        <div className="text-center">참석유형</div>
-        <div className="text-center">참석형태</div>
+        <div className="text-center">이름</div>
+        <div className="text-center">유형</div>
+        <div className="text-center">형태</div>
       </div>
 
       {attendees.length === 0 ? (
@@ -84,7 +84,7 @@ function AttendeeTableBox({
         <div className="divide-y divide-slate-200">
           {attendees.map((a, i) => (
             <div key={i} className="grid grid-cols-3 gap-2 px-4 py-3 text-sm text-slate-700">
-              <div className="truncate">{a.name}</div>
+              <div className="text-center text-slate-600">{a.name}</div>
               <div className="text-center text-slate-600">{a.preregistered}</div>
               <div className="text-center text-slate-600">{a.attendanceType}</div>
             </div>

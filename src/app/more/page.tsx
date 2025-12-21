@@ -4,7 +4,7 @@ import CardSection from '@/components/ui/CardSection';
 
 export default function MorePage() {
   return (
-    <div className="mx-auto max-w-md px-4 pb-24">
+    <div className="mx-auto max-w-md px-4 pb-24 pt-4">
       <CardSection
         title="더보기"
         description="기타 설정 및 정보를 확인할 수 있어요."
@@ -12,7 +12,7 @@ export default function MorePage() {
         <div className="divide-y">
           {/* 외부 링크 1 */}
           <a
-            href="https://drive.google.com/file/d/1NrzYXccyQYbQ2FKx5TrnXqIMdx1ho93F/viewhttps://docs.google.com/spreadsheets/d/XXXX"
+            href="https://drive.google.com/file/d/1NrzYXccyQYbQ2FKx5TrnXqIMdx1ho93F/view"
             target="_blank"
             rel="noopener noreferrer"
             className="flex w-full items-center justify-between py-3 text-sm hover:bg-zinc-50 rounded-md px-3"

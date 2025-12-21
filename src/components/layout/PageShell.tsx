@@ -19,7 +19,7 @@ export default function PageShell({ children, className }: PageShellProps) {
     <main className="min-h-dvh bg-bg text-fg">
       <div
         className={cn(
-          "mx-auto max-w-md px-5 py-6 pb-[88px]", // ← BottomNav 공간
+          "mx-auto max-w-md px-5 pb-[88px]", // ← BottomNav 공간
           className
         )}
       >

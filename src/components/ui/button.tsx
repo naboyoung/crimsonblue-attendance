@@ -25,14 +25,15 @@ export function Button({
 
   const styles =
     variant === "primary"
-      ? "bg-brand text-white shadow-soft hover:opacity-90"
+      ? "bg-black text-white shadow-soft hover:opacity-90"
       : variant === "ghost"
       ? "bg-transparent text-fg hover:bg-white/5"
       : variant === "outline"
       ? "border border-white/15 bg-transparent text-fg hover:bg-white/5"
       : variant === "secondary"
       ? "bg-white/10 text-fg hover:bg-white/15"
-      : "bg-red-600 text-white hover:bg-red-700"; // destructive
+      : "bg-red-600 text-white hover:bg-red-700";
+
 
   return (
     <button
