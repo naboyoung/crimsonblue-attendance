@@ -6,7 +6,7 @@ export default function HomePage() {
   return (
     <PageShell>
       {/* Header */}
-      <header className="flex items-center justify-center">
+      <header className="flex items-center justify-center pt-3">
         <div className="min-w-0 text-center">
           <h1 className="text-xl font-bold tracking-tight truncate">
             크림슨블루 출석부
