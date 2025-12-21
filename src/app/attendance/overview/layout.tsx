@@ -23,7 +23,7 @@ export default function AttendanceOverviewLayout({
 
   return (
     <PageShell>
-      <div className="mt-4 mx-auto max-w-md px-4 pb-24">
+      <div className="mt-4 pb-24">
         {/* 출석현황 압축 헤더 */}
         <div className="flex items-center justify-between">
           <div>
