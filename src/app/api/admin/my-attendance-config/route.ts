@@ -13,7 +13,7 @@ function toBoolString(v: boolean) {
 
 function normalizeMessage(s: any) {
   const v = String(s ?? "").trim();
-  return v || "현재 개인 출석 조회 기간이 아닙니다. 운영진 공지를 확인해 주세요.";
+  return v || "현재 개인 출석 조회 기간이 아닙니다. 단톡방 공지를 확인해 주세요.";
 }
 
 function toEnabled(v: any) {

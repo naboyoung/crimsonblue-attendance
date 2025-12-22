@@ -15,26 +15,30 @@ function isStaticAsset(pathname: string) {
 }
 
 function isPublicApi(pathname: string) {
-  // ✅ 로그인만 공개. 나머지 auth/me, logout, change-password는 로그인 필요.
+  // 로그인 API만 공개
   return pathname === "/api/auth/login";
 }
 
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
+  // 1. 정적 파일 / 공개 페이지는 통과
   if (isStaticAsset(pathname) || PUBLIC_PATHS.has(pathname)) {
     return NextResponse.next();
   }
 
+  // 2. 공개 API는 통과
   if (pathname.startsWith("/api") && isPublicApi(pathname)) {
     return NextResponse.next();
   }
 
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) {
-    // env 누락 시 안전하게 막기
+  // 3. 로그인 토큰 확인
+  const token = req.cookies.get(getCookieName())?.value;
+
+  // 토큰 없으면 미로그인 처리
+  if (!token) {
     if (pathname.startsWith("/api")) {
-      return NextResponse.json({ ok: false, error: "AUTH_SECRET missing" }, { status: 500 });
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
     const url = req.nextUrl.clone();
     url.pathname = "/login";
@@ -42,12 +46,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const token = req.cookies.get(getCookieName())?.value;
-  const verified = token ? await verifySessionToken(secret, token) : { ok: false as const, reason: "no_token" };
+  // 4. 토큰 검증
+  // ⚠️ secret은 middleware에서 "존재 체크"하지 않음
+  const secret = process.env.AUTH_SECRET ?? "";
+  const verified = await verifySessionToken(secret, token);
 
-  if (verified.ok) return NextResponse.next();
+  if (verified.ok) {
+    return NextResponse.next();
+  }
 
-  // 미로그인 처리
+  // 5. 토큰이 있지만 유효하지 않음
   if (pathname.startsWith("/api")) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }

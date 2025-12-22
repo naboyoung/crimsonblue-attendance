@@ -22,3 +22,4 @@ export async function GET() {
     return NextResponse.json({ ok: false, message: msg }, { status: 500 });
   }
 }
+

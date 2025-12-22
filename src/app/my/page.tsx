@@ -27,13 +27,13 @@ export default function MyLookupPage() {
         } else {
           setGate({
             enabled: false,
-            message: "현재 개인 출석 조회 기간이 아닙니다. 운영진 공지를 확인해 주세요.",
+            message: "현재 개인 출석 조회 기간이 아닙니다. 단톡방 공지를 확인해 주세요.",
           });
         }
       } catch {
         setGate({
           enabled: false,
-          message: "현재 개인 출석 조회 기간이 아닙니다. 운영진 공지를 확인해 주세요.",
+          message: "현재 개인 출석 조회 기간이 아닙니다. 단톡방 공지를 확인해 주세요.",
         });
       } finally {
         setGateLoading(false);
@@ -98,7 +98,7 @@ export default function MyLookupPage() {
         <div className="rounded-2xl border bg-white p-4">
           <div className="text-lg font-semibold">내 출석 조회</div>
           <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            {gate.message || "현재 개인 출석 조회 기간이 아닙니다. 운영진 공지를 확인해 주세요."}
+            {gate.message || "현재 개인 출석 조회 기간이 아닙니다. 단톡방 공지를 확인해 주세요."}
           </div>
         </div>
       </div>

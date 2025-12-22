@@ -26,7 +26,7 @@ export async function GET() {
     const enabled = toBool(map.get("my_attendance_enabled"));
     const message =
       map.get("my_attendance_message") ||
-      "현재 개인 출석 조회 기간이 아닙니다. 운영진 공지를 확인해 주세요.";
+      "현재 개인 출석 조회 기간이 아닙니다. 단톡방 공지를 확인해 주세요.";
 
     // 캐시 방지(운영진이 켰다/껐다가 즉시 반영되게)
     return NextResponse.json(
@@ -43,7 +43,7 @@ export async function GET() {
       {
         ok: true,
         enabled: false,
-        message: "현재 개인 출석 조회 기간이 아닙니다. 운영진 공지를 확인해 주세요.",
+        message: "현재 개인 출석 조회 기간이 아닙니다. 단톡방 공지를 확인해 주세요.",
       },
       {
         headers: {

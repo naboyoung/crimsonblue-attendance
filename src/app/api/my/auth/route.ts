@@ -66,7 +66,7 @@ async function getMyAttendanceGate(): Promise<{ enabled: boolean; message: strin
     // 오류 시 안전하게 닫힘
     return {
       enabled: false,
-      message: "현재 개인 출석 조회 기간이 아닙니다. 운영진 공지를 확인해 주세요.",
+      message: "현재 개인 출석 조회 기간이 아닙니다. 단톡방 공지를 확인해 주세요.",
     };
   }
 }
