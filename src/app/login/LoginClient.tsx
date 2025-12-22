@@ -6,7 +6,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 export default function LoginClient() {
   const router = useRouter();
   const sp = useSearchParams();
-  const nextPath = useMemo(() => sp.get("next") || "/", [sp]);
+
+  // ✅ nextPath 안전 처리 (루프 방지)
+  const nextPath = useMemo(() => {
+    const raw = sp.get("next") || "/";
+    const safe = raw.startsWith("/") ? raw : "/";
+    if (safe.startsWith("/login")) return "/";
+    return safe;
+  }, [sp]);
 
   const [pw, setPw] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,6 +23,7 @@ export default function LoginClient() {
     e.preventDefault();
     setErr(null);
     setLoading(true);
+
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -25,11 +33,21 @@ export default function LoginClient() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setErr((data as any)?.error || "로그인에 실패했습니다.");
+        setErr(data?.error || "로그인에 실패했습니다.");
         return;
       }
 
+      // ✅ 세션이 실제로 생성됐는지 한 번 확인 (안전용)
+      await fetch("/api/debug/session", { cache: "no-store" });
+
+      // ✅ 1차: App Router 이동
       router.replace(nextPath);
+      router.refresh();
+
+      // ✅ 2차: 혹시 이동이 안 되면 하드 리다이렉트 (모바일 보험)
+      setTimeout(() => {
+        window.location.assign(nextPath);
+      }, 150);
     } catch {
       setErr("네트워크 오류가 발생했습니다.");
     } finally {
