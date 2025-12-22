@@ -18,7 +18,8 @@ function isPublicApi(pathname: string) {
   // 로그인 API만 공개
   return (
     pathname === "/api/auth/login" ||
-    pathname === "/api/auth/_debug/env"
+    pathname === "/api/auth/_debug/env" ||
+    pathname === "/api/_debug/ping"
   );
 }
 
