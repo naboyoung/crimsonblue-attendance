@@ -26,12 +26,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Admin password not initialized" }, { status: 503 });
     }
     if (password !== bootstrapPw) {
-      return NextResponse.json({ ok: false, error: "Invalid password" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: "유효하지 않은 비밀번호입니다." }, { status: 401 });
     }
     await setAdminPassword(password);
   } else {
     const v = await verifyAdminPassword(password);
-    if (!v.ok) return NextResponse.json({ ok: false, error: "Invalid password" }, { status: 401 });
+    if (!v.ok) return NextResponse.json({ ok: false, error: "유효하지 않은 비밀번호입니다." }, { status: 401 });
   }
 
   const token = await issueSessionToken(secret);
