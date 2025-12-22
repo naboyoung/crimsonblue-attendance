@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 export default function LoginClient() {
   const router = useRouter();
@@ -36,6 +37,8 @@ export default function LoginClient() {
         setErr(data?.error || "로그인에 실패했습니다.");
         return;
       }
+
+      toast.success("✅ 로그인되었습니다")
 
       // ✅ 세션이 실제로 생성됐는지 한 번 확인 (안전용)
       await fetch("/api/debug/session", { cache: "no-store" });
