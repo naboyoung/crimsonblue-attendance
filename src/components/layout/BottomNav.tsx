@@ -25,6 +25,10 @@ function isActive(pathname: string, href: string) {
 export default function BottomNav() {
   const pathname = usePathname();
 
+  if (pathname.startsWith("/my")) {
+    return null;
+  }
+
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 dark:bg-black/70">
       <div className="mx-auto grid max-w-md grid-cols-4 px-2 py-2">
@@ -43,8 +47,18 @@ export default function BottomNav() {
                   : "text-fg/60 hover:text-fg",
               ].join(" ")}
             >
-              <Icon className={["h-5 w-5", active ? "opacity-100" : "opacity-80"].join(" ")} />
-              <span className={["text-[11px] leading-none", active ? "font-semibold" : "font-medium"].join(" ")}>
+              <Icon
+                className={[
+                  "h-5 w-5",
+                  active ? "opacity-100" : "opacity-80",
+                ].join(" ")}
+              />
+              <span
+                className={[
+                  "text-[11px] leading-none",
+                  active ? "font-semibold" : "font-medium",
+                ].join(" ")}
+              >
                 {item.label}
               </span>
             </Link>
