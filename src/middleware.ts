@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCookieName, verifySessionToken } from "@/lib/server/authToken";
 
-const PUBLIC_PATHS = new Set(["/login"]);
+const PUBLIC_PATHS = new Set(["/login", "/my"]);
 
 function isStaticAsset(pathname: string) {
   return (
@@ -17,7 +17,8 @@ function isStaticAsset(pathname: string) {
 // ✅ 공개 API: 로그인 + 디버그(점검) 엔드포인트
 function isPublicApi(pathname: string) {
   if (pathname === "/api/auth/login") return true;
-  if (pathname.startsWith("/api/debug/")) return true; // ✅ 핵심
+  if (pathname.startsWith("/api/debug/")) return true;
+  if (pathname.startsWith("/api/my/")) return true; // ✅ 핵심
   return false;
 }
 
@@ -39,7 +40,10 @@ export async function middleware(req: NextRequest) {
 
   if (!token) {
     if (pathname.startsWith("/api")) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
     const url = req.nextUrl.clone();
     url.pathname = "/login";
@@ -55,7 +59,10 @@ export async function middleware(req: NextRequest) {
 
   // 5) 토큰이 있으나 실패
   if (pathname.startsWith("/api")) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   const url = req.nextUrl.clone();
