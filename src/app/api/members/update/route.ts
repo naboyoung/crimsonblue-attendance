@@ -424,7 +424,7 @@ export async function POST(req: Request) {
 
         await updateMemberRowById(memberId, {
           role: nextRole,
-          last_updated_at: new Date().toISOString(),
+          last_updated_at: changedAt,
         });
 
         // history_id | member_id | name | action_type | action_detail | before_value | after_value | changed_by | changed_at | note
@@ -482,7 +482,7 @@ export async function POST(req: Request) {
 
       await updateMemberRowById(memberId, {
         [field]: afterValue,
-        last_updated_at: new Date().toISOString(),
+        last_updated_at: changedAt,
       } as Record<string, string>);
 
       await appendRows(MEMBER_INFO_HISTORY_SHEET, [
