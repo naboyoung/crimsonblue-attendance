@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Segmented from "@/components/ui/Segmented";
 import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { meetingTypeToVariant } from "@/lib/ui/badgeVariants";
 
 type AttendanceType = "정상" | "지각" | "불참";
@@ -226,7 +227,21 @@ export default function SessionView() {
         ]}
       />
 
-      {loading && <div className="text-sm text-slate-500">불러오는 중...</div>}
+      {loading && (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="divide-y divide-slate-200">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between px-4 py-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+                <Skeleton className="h-5 w-12" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {error && <div className="text-sm text-red-600">{error}</div>}
 
       {!loading && !error && displaySessions.length === 0 && (

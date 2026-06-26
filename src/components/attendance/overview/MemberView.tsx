@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FIELD_BASE, cx } from '@/components/ui/fieldStyles';
 import Segmented from '@/components/ui/Segmented';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 type AttendanceType = '정상' | '지각' | '불참';
 
@@ -536,7 +537,21 @@ export default function MemberView({ initialSortKey = 'name', initialSortDir = '
         </div>
       </div>
 
-      {loading && <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">불러오는 중...</div>}
+      {loading && (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="divide-y divide-slate-200">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between px-4 py-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-3 w-10" />
+                </div>
+                <Skeleton className="h-5 w-8" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
