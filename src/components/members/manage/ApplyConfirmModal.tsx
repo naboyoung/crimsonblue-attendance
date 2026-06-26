@@ -52,6 +52,7 @@ export function ApplyConfirmModal(props: ApplyConfirmModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [changedBy, setChangedBy] = useState("");
+  const [dormantReason, setDormantReason] = useState("");
 
   const firstName = targets[0]?.name ?? "";
   const restCount = Math.max(targets.length - 1, 0);
@@ -64,8 +65,9 @@ export function ApplyConfirmModal(props: ApplyConfirmModalProps) {
     if (mode === "PROFILE_EDIT") {
       return targets.length === 1 && !!afterValue?.trim();
     }
+    if (action === "SET_DORMANT" && !dormantReason.trim()) return false;
     return true;
-  }, [submitting, changedBy, targets.length, mode, afterValue]);
+  }, [submitting, changedBy, targets.length, mode, afterValue, action, dormantReason]);
 
   if (!open) return null;
 
@@ -83,6 +85,7 @@ export function ApplyConfirmModal(props: ApplyConfirmModalProps) {
               action,
               targetMemberIds: memberIds,
               changedBy: changedBy.trim(),
+              note: action === "SET_DORMANT" ? dormantReason.trim() : "",
             }
           : {
               kind: "PROFILE_EDIT",
@@ -144,6 +147,19 @@ export function ApplyConfirmModal(props: ApplyConfirmModalProps) {
 
             <div className="mt-2 text-zinc-500">변경 값</div>
             <div className="font-medium text-zinc-900">{afterValue}</div>
+          </div>
+        )}
+
+        {/* 휴면 사유 입력 */}
+        {action === "SET_DORMANT" && (
+          <div className="mt-5">
+            <div className="text-xs text-zinc-500">휴면 사유 <span className="text-red-400">*</span></div>
+            <input
+              value={dormantReason}
+              onChange={(e) => setDormantReason(e.target.value)}
+              placeholder="사유를 입력해주세요"
+              className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
+            />
           </div>
         )}
 

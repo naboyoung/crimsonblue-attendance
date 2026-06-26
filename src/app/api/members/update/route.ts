@@ -364,6 +364,7 @@ export async function POST(req: Request) {
 
     const afterValue =
       mode === "PROFILE_EDIT" ? String(body.payload?.newValue ?? "").trim() : "";
+    const note = String(body.note ?? "").trim();
 
     if (!mode) {
       return NextResponse.json({ ok: false, message: "mode(kind)가 없습니다." }, { status: 400 });
@@ -437,7 +438,7 @@ export async function POST(req: Request) {
           nextRole,
           changedBy,
           changedAt,
-          "",
+          note,
         ]);
       }
 
