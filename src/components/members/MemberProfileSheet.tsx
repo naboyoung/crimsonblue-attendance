@@ -40,6 +40,7 @@ export function MemberProfileSheet(props: {
   const gender = (member.gender ?? "").trim();
   const birthYear = (member.birth_year ?? "").trim();
   const region = (member.region ?? "").trim();
+  const dormancyCount = (member.dormancy_count ?? "").trim();
 
   const joinDate = (member.join_date ?? "").trim();
   const lastUpdated = toDateOnly(member.last_updated_at);
@@ -76,6 +77,7 @@ export function MemberProfileSheet(props: {
             {lineItem("성별:", gender)}
             {lineItem("출생연도:", birthYear)}
             {lineItem("지역:", region)}
+            {lineItem("휴면횟수:", dormancyCount)}
           </div>
 
           <div className="flex flex-wrap gap-x-4 gap-y-2">

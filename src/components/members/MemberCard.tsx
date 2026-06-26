@@ -20,6 +20,7 @@ export type Member = {
   join_date?: string;
   last_updated_at?: string;
   comment?: string;
+  dormancy_count?: string;
 };
 
 function parseJoinDateYM(joinDate: string): { y: number; m: number } | null {

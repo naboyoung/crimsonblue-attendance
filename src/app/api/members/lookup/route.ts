@@ -246,6 +246,7 @@ export async function GET(req: Request) {
           join_date: string;
           last_updated_at: string;
           comment: string;
+          dormancy_count: string;
 
           total_score?: number;
         } = {
@@ -263,6 +264,7 @@ export async function GET(req: Request) {
           join_date: (m["join_date"] ?? "").trim(),
           last_updated_at: (m["last_updated_at"] ?? "").trim(),
           comment: (m["comment"] ?? "").trim(),
+          dormancy_count: (m["dormancy_count"] ?? "").trim(),
         };
 
         if (totalScoreByMember) {
