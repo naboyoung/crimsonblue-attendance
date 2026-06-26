@@ -9,14 +9,20 @@ export async function GET() {
       return NextResponse.json({ ok: true, data: { recentSessionId: '' } });
     }
 
-    for (let i = rows.length - 1; i >= 0; i--) {
-      const sid = String((rows[i] as any)?.session_id ?? '').trim();
-      if (sid) {
-        return NextResponse.json({ ok: true, data: { recentSessionId: sid } });
+    let maxId = -Infinity;
+    let maxSid = '';
+
+    for (const row of rows) {
+      const sid = String((row as any)?.session_id ?? '').trim();
+      if (!sid) continue;
+      const n = Number(sid);
+      if (Number.isFinite(n) && n > maxId) {
+        maxId = n;
+        maxSid = sid;
       }
     }
 
-    return NextResponse.json({ ok: true, data: { recentSessionId: '' } });
+    return NextResponse.json({ ok: true, data: { recentSessionId: maxSid } });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed to load recent session';
     return NextResponse.json({ ok: false, message: msg }, { status: 500 });
