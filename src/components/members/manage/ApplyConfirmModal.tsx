@@ -17,6 +17,7 @@ type RoleStatusAction =
   | "SET_WITHDRAWN"
   | "SET_ASSOCIATE"
   | "UNSET_ASSOCIATE_TO_REGULAR"
+  | "SET_OB"
   | "UNSET_OB_TO_REGULAR";
 
 type ProfileEditAction = "UPDATE_PHONE" | "UPDATE_REGION" | "UPDATE_LEVEL";

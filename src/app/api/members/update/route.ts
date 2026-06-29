@@ -402,6 +402,7 @@ export async function POST(req: Request) {
         DEMOTE_FROM_STAFF: "정회원",
         SET_ASSOCIATE: "준회원",
         UNSET_ASSOCIATE_TO_REGULAR: "정회원",
+        SET_OB: "OB",
         UNSET_OB_TO_REGULAR: "정회원",
         SET_DORMANT: "휴면",
         UNSET_DORMANT_TO_REGULAR: "정회원",

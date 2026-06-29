@@ -38,6 +38,7 @@ const ROLE_ACTION_LABEL: Record<RoleStatusAction, string> = {
   DEMOTE_FROM_STAFF: "운영진 해제",
   SET_ASSOCIATE: "준회원 등록",
   UNSET_ASSOCIATE_TO_REGULAR: "준회원 해제",
+  SET_OB: "OB 전환",
   UNSET_OB_TO_REGULAR: "OB 해제(정회원 전환)",
   SET_DORMANT: "휴면 처리",
   UNSET_DORMANT_TO_REGULAR: "휴면 해제",

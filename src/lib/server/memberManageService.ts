@@ -13,6 +13,7 @@ export type RoleStatusAction =
   | 'SET_WITHDRAWN'
   | 'SET_ASSOCIATE'
   | 'UNSET_ASSOCIATE_TO_REGULAR'
+  | 'SET_OB'
   | 'UNSET_OB_TO_REGULAR';
 
 export type ProfileEditAction = 'UPDATE_PHONE' | 'UPDATE_REGION' | 'UPDATE_LEVEL';
@@ -127,6 +128,10 @@ export async function applyRoleStatusChange(params: {
         break;
       case 'UNSET_ASSOCIATE_TO_REGULAR':
         after.role = '정회원';
+        after.is_active = true;
+        break;
+      case 'SET_OB':
+        after.role = 'OB';
         after.is_active = true;
         break;
       case 'UNSET_OB_TO_REGULAR':
@@ -313,6 +318,8 @@ function getRoleStatusActionLabel(action: RoleStatusAction) {
       return '준회원 등록';
     case 'UNSET_ASSOCIATE_TO_REGULAR':
       return '준회원 해제(정회원 전환)';
+    case 'SET_OB':
+      return 'OB 전환';
     case 'UNSET_OB_TO_REGULAR':
       return 'OB 해제(정회원 전환)';
     case 'SET_DORMANT':
