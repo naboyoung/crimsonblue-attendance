@@ -8,7 +8,7 @@ const PRIVATE_KEY = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
 const MEMBERS_SHEET = "Members";
 const ATTENDANCE_SHEET = "AttendanceHistory";
 
-type MemberRole = "운영진" | "정회원" | "준회원" | "휴면" | "탈퇴";
+type MemberRole = "운영진" | "정회원" | "준회원" | "OB" | "휴면" | "탈퇴";
 type MemberRow = Record<string, string>;
 
 function normalizeBool(v: string) {
@@ -185,7 +185,7 @@ export async function GET(req: Request) {
         const role = ((m["role"] ?? "").trim() as MemberRole) || "";
         const active = normalizeBool(m["is_active"] ?? "");
         if (!active) return false;
-        return role === "운영진" || role === "정회원" || role === "준회원";
+        return role === "운영진" || role === "정회원" || role === "준회원" || role === "OB";
       });
 
       const { start, end } =

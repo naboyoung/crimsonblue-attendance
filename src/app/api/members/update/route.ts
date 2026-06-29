@@ -9,7 +9,7 @@ const MEMBERS_SHEET = "Members";
 const ATTENDANCE_SHEET = "AttendanceHistory";
 const MEMBER_INFO_HISTORY_SHEET = "MemberInfoHistory";
 
-type MemberRole = "운영진" | "정회원" | "준회원" | "휴면" | "탈퇴";
+type MemberRole = "운영진" | "정회원" | "준회원" | "OB" | "휴면" | "탈퇴";
 type MemberRow = Record<string, string>;
 
 function normalizeBool(v: string) {
@@ -252,7 +252,7 @@ export async function GET(req: Request) {
         const role = ((m["role"] ?? "").trim() as MemberRole) || "";
         const active = normalizeBool(m["is_active"] ?? "");
         if (!active) return false;
-        return role === "운영진" || role === "정회원" || role === "준회원";
+        return role === "운영진" || role === "정회원" || role === "준회원" || role === "OB";
       });
 
       // 기간 결정(KST 기준)
@@ -402,6 +402,7 @@ export async function POST(req: Request) {
         DEMOTE_FROM_STAFF: "정회원",
         SET_ASSOCIATE: "준회원",
         UNSET_ASSOCIATE_TO_REGULAR: "정회원",
+        UNSET_OB_TO_REGULAR: "정회원",
         SET_DORMANT: "휴면",
         UNSET_DORMANT_TO_REGULAR: "정회원",
         SET_WITHDRAWN: "탈퇴",

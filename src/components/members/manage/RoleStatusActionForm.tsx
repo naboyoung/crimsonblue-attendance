@@ -10,7 +10,8 @@ export type RoleStatusAction =
   | "UNSET_DORMANT_TO_REGULAR"
   | "SET_WITHDRAWN"
   | "SET_ASSOCIATE"
-  | "UNSET_ASSOCIATE_TO_REGULAR";
+  | "UNSET_ASSOCIATE_TO_REGULAR"
+  | "UNSET_OB_TO_REGULAR";
 
 type Props = {
   selectedRoles: PickMemberRole[];
@@ -25,6 +26,7 @@ const ACTION_LABEL: Record<RoleStatusAction, string> = {
   DEMOTE_FROM_STAFF: "운영진 해제",
   SET_ASSOCIATE: "준회원 등록",
   UNSET_ASSOCIATE_TO_REGULAR: "준회원 해제",
+  UNSET_OB_TO_REGULAR: "OB 해제(정회원 전환)",
   SET_DORMANT: "휴면 처리",
   UNSET_DORMANT_TO_REGULAR: "휴면 해제",
   SET_WITHDRAWN: "탈퇴 처리",
@@ -63,6 +65,13 @@ function allowedActionsByRoles(roles: PickMemberRole[]): RoleStatusAction[] {
     }
     if (r === "휴면") {
       set.add("UNSET_DORMANT_TO_REGULAR");
+      set.add("SET_WITHDRAWN");
+      continue;
+    }
+    if (r === "OB") {
+      set.add("PROMOTE_TO_STAFF");
+      set.add("UNSET_OB_TO_REGULAR");
+      set.add("SET_DORMANT");
       set.add("SET_WITHDRAWN");
       continue;
     }

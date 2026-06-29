@@ -7,6 +7,7 @@ export type BadgeVariant =
   | "role_admin"
   | "role_regular"
   | "role_associate"
+  | "role_ob"
   | "role_dormant"
   | "role_withdrawn"
   // meeting
@@ -25,6 +26,7 @@ const VARIANT: Record<BadgeVariant, string> = {
   role_admin: "bg-zinc-900 text-white text-xs font-semibold",
   role_regular: "border border-slate-200 bg-slate-100 text-slate-700 text-xs",
   role_associate: "border border-slate-200 bg-slate-50 text-slate-600 text-xs",
+  role_ob: "border border-blue-200 bg-blue-50 text-blue-700 text-xs",
   role_dormant: "border border-zinc-200 bg-zinc-100 text-zinc-500 text-xs",
   role_withdrawn: "border border-zinc-200 bg-zinc-200 text-zinc-500 text-xs",
 

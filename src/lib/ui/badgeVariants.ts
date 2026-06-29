@@ -1,7 +1,7 @@
 import type { BadgeVariant } from "@/components/ui/Badge";
 
 export type MeetingType = "정기모임" | "대관행사" | "기타";
-export type RoleType = "운영진" | "정회원" | "준회원" | "휴면" | "탈퇴";
+export type RoleType = "운영진" | "정회원" | "준회원" | "OB" | "휴면" | "탈퇴";
 
 export function meetingTypeToVariant(type?: string): BadgeVariant {
   const t = (type ?? "").trim();
@@ -26,6 +26,8 @@ export function roleToVariant(role?: string): BadgeVariant {
       return "role_regular";
     case "준회원":
       return "role_associate";
+    case "OB":
+      return "role_ob";
     case "휴면":
       return "role_dormant";
     case "탈퇴":

@@ -1,9 +1,9 @@
 "use client";
 
-export type Role = "운영진" | "정회원" | "준회원" | "휴면" | "탈퇴";
+export type Role = "운영진" | "정회원" | "준회원" | "OB" | "휴면" | "탈퇴";
 export type MemberFilter = Role | "신입";
 
-export const ROLES: Role[] = ["운영진", "정회원", "준회원", "휴면", "탈퇴"];
+export const ROLES: Role[] = ["운영진", "정회원", "준회원", "OB", "휴면", "탈퇴"];
 export const FILTERS: MemberFilter[] = ["신입", ...ROLES];
 
 function chipBase(selected: boolean) {

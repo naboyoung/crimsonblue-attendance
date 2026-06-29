@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { readSheetObjects, appendRows, updateRowByKey } from '@/lib/server/googleSheets'; // ✅ 너 프로젝트 googleSheets.ts에 맞춰져야 함
 import { nowKSTString } from '@/lib/server/googleSheets'; // ✅ 없으면 아래 주석 참고
 
-type Role = '운영진' | '정회원' | '준회원' | '휴면' | '탈퇴';
+type Role = '운영진' | '정회원' | '준회원' | 'OB' | '휴면' | '탈퇴';
 
 export type RoleStatusAction =
   | 'PROMOTE_TO_STAFF'
@@ -12,7 +12,8 @@ export type RoleStatusAction =
   | 'UNSET_DORMANT_TO_REGULAR'
   | 'SET_WITHDRAWN'
   | 'SET_ASSOCIATE'
-  | 'UNSET_ASSOCIATE_TO_REGULAR';
+  | 'UNSET_ASSOCIATE_TO_REGULAR'
+  | 'UNSET_OB_TO_REGULAR';
 
 export type ProfileEditAction = 'UPDATE_PHONE' | 'UPDATE_REGION' | 'UPDATE_LEVEL';
 
@@ -125,6 +126,10 @@ export async function applyRoleStatusChange(params: {
         after.is_active = true;
         break;
       case 'UNSET_ASSOCIATE_TO_REGULAR':
+        after.role = '정회원';
+        after.is_active = true;
+        break;
+      case 'UNSET_OB_TO_REGULAR':
         after.role = '정회원';
         after.is_active = true;
         break;
@@ -308,6 +313,8 @@ function getRoleStatusActionLabel(action: RoleStatusAction) {
       return '준회원 등록';
     case 'UNSET_ASSOCIATE_TO_REGULAR':
       return '준회원 해제(정회원 전환)';
+    case 'UNSET_OB_TO_REGULAR':
+      return 'OB 해제(정회원 전환)';
     case 'SET_DORMANT':
       return '휴면 등록';
     case 'UNSET_DORMANT_TO_REGULAR':
