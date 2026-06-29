@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import CardSection from '@/components/ui/CardSection';
-import PageShell from '@/components/layout/PageShell';
-import { useEffect, useMemo, useState } from 'react';
-import AttendanceBasicInfoSection from '@/components/attendance/AttendanceBasicInfoSection';
-import AttendanceAttendeeSection from '@/components/attendance/AttendanceAttendeeSection';
-import AttendanceConfirmModal from '@/components/attendance/AttendanceConfirmModal';
-import type { MeetingType, AttendeeRow } from '@/types/attendance';
+import CardSection from "@/components/ui/CardSection";
+import PageShell from "@/components/layout/PageShell";
+import { useEffect, useMemo, useState } from "react";
+import AttendanceBasicInfoSection from "@/components/attendance/AttendanceBasicInfoSection";
+import AttendanceAttendeeSection from "@/components/attendance/AttendanceAttendeeSection";
+import AttendanceConfirmModal from "@/components/attendance/AttendanceConfirmModal";
+import type { MeetingType, AttendeeRow } from "@/types/attendance";
 
 // ✅ Members API에서 받아올 최소 필드
 type Member = {
@@ -22,20 +22,20 @@ export default function AttendanceRegisterPage() {
   // -----------------------------
   const today = new Date();
   const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
 
   const [date, setDate] = useState(`${yyyy}-${mm}-${dd}`);
-  const [sessionId, setSessionId] = useState(''); // ✅ session_id 사용자 입력
-  const [meetingType, setMeetingType] = useState<MeetingType>('정기모임');
-  const [gymName, setGymName] = useState(''); // ✅ 암장명
-  const [writer, setWriter] = useState(''); // ✅ 작성자
-  const [description, setDescription] = useState(''); // 비고/설명
+  const [sessionId, setSessionId] = useState(""); // ✅ session_id 사용자 입력
+  const [meetingType, setMeetingType] = useState<MeetingType>("정기모임");
+  const [gymName, setGymName] = useState(""); // ✅ 암장명
+  const [writer, setWriter] = useState(""); // ✅ 작성자
+  const [description, setDescription] = useState(""); // 비고/설명
 
   // -----------------------------
   // 참석자 State
   // -----------------------------
-  const [attendeeInput, setAttendeeInput] = useState('');
+  const [attendeeInput, setAttendeeInput] = useState("");
   const [attendees, setAttendees] = useState<AttendeeRow[]>([]); // ✅ 변경: 초기값 빈 배열(이미 적용한 상태지만 유지)
 
   // -----------------------------
@@ -43,7 +43,7 @@ export default function AttendanceRegisterPage() {
   // -----------------------------
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [validationError, setValidationError] = useState<string>('');
+  const [validationError, setValidationError] = useState<string>("");
 
   // -----------------------------
   // ✅ members 로딩 (자동완성 옵션 생성용)
@@ -53,7 +53,7 @@ export default function AttendanceRegisterPage() {
   useEffect(() => {
     const loadMembers = async () => {
       try {
-        const res = await fetch('/api/members', { cache: 'no-store' });
+        const res = await fetch("/api/members", { cache: "no-store" });
         const json = await res.json().catch(() => null);
         if (!res.ok || !json?.ok) return;
 
@@ -66,20 +66,21 @@ export default function AttendanceRegisterPage() {
     loadMembers();
   }, []);
 
-
-    // -----------------------------
+  // -----------------------------
   // ✅ 최근 회차 / GymList 로딩
   // -----------------------------
-  const [recentSessionId, setRecentSessionId] = useState<string>('');
+  const [recentSessionId, setRecentSessionId] = useState<string>("");
   const [gymOptions, setGymOptions] = useState<string[]>([]);
 
   useEffect(() => {
     const loadRecentSession = async () => {
       try {
-        const res = await fetch('/api/attendance/recent-session', { cache: 'no-store' });
+        const res = await fetch("/api/attendance/recent-session", {
+          cache: "no-store",
+        });
         const json = await res.json().catch(() => null);
         if (!res.ok || !json?.ok) return;
-        setRecentSessionId(String(json.data?.recentSessionId ?? '').trim());
+        setRecentSessionId(String(json.data?.recentSessionId ?? "").trim());
       } catch {
         // 조용히 무시
       }
@@ -90,11 +91,13 @@ export default function AttendanceRegisterPage() {
   useEffect(() => {
     const loadGyms = async () => {
       try {
-        const res = await fetch('/api/gyms', { cache: 'no-store' });
+        const res = await fetch("/api/gyms", { cache: "no-store" });
         const json = await res.json().catch(() => null);
         if (!res.ok || !json?.ok) return;
         const list = Array.isArray(json.data) ? json.data : [];
-        setGymOptions(list.map((x: any) => String(x ?? '').trim()).filter(Boolean));
+        setGymOptions(
+          list.map((x: any) => String(x ?? "").trim()).filter(Boolean),
+        );
       } catch {
         // 조용히 무시
       }
@@ -105,21 +108,23 @@ export default function AttendanceRegisterPage() {
   // -----------------------------
   // ✅ 자동완성 옵션
   // 1) writerOptions: 운영진만
-  // 2) memberOptions: 활동회원(운영진/정회원/준회원)만
+  // 2) memberOptions: 활동회원(운영진/정회원/준회원/OB)만
   // -----------------------------
   const writerOptions = useMemo(() => {
     return members
-      .filter((m) => String(m.is_active).toLowerCase() === 'true')
-      .filter((m) => (m.role ?? '').trim() === '운영진')
-      .map((m) => (m.name ?? '').trim())
+      .filter((m) => String(m.is_active).toLowerCase() === "true")
+      .filter((m) => (m.role ?? "").trim() === "운영진")
+      .map((m) => (m.name ?? "").trim())
       .filter(Boolean);
   }, [members]);
 
   const memberOptions = useMemo(() => {
     return members
-      .filter((m) => String(m.is_active).toLowerCase() === 'true')
-      .filter((m) => ['운영진', '정회원', '준회원'].includes((m.role ?? '').trim()))
-      .map((m) => (m.name ?? '').trim())
+      .filter((m) => String(m.is_active).toLowerCase() === "true")
+      .filter((m) =>
+        ["운영진", "정회원", "준회원", "OB"].includes((m.role ?? "").trim()),
+      )
+      .map((m) => (m.name ?? "").trim())
       .filter(Boolean);
   }, [members]);
 
@@ -127,25 +132,27 @@ export default function AttendanceRegisterPage() {
   // ✅ 검증
   // -----------------------------
   const validate = () => {
-    const sid = String(sessionId ?? '').trim();
-    const gname = String(gymName ?? '').trim();
-    const w = String(writer ?? '').trim();
+    const sid = String(sessionId ?? "").trim();
+    const gname = String(gymName ?? "").trim();
+    const w = String(writer ?? "").trim();
 
-    if (!sid) return '회차는 필수입니다.';
-    if (!/^\d+$/.test(sid)) return '회차는 숫자만 입력해주세요.';
-    if (!date) return '날짜는 필수입니다.';
-    if (!meetingType) return '모임유형은 필수입니다.';
-    if (!gname) return '암장명은 필수입니다.';
-    if (!w) return '작성자명은 필수입니다.';
+    if (!sid) return "회차는 필수입니다.";
+    if (!/^\d+$/.test(sid)) return "회차는 숫자만 입력해주세요.";
+    if (!date) return "날짜는 필수입니다.";
+    if (!meetingType) return "모임유형은 필수입니다.";
+    if (!gname) return "암장명은 필수입니다.";
+    if (!w) return "작성자명은 필수입니다.";
 
-    const named = attendees.filter((a) => String(a.name ?? '').trim().length > 0);
-    if (named.length < 1) return '최소 1명 이상의 출석자가 필요합니다.';
+    const named = attendees.filter(
+      (a) => String(a.name ?? "").trim().length > 0,
+    );
+    if (named.length < 1) return "최소 1명 이상의 출석자가 필요합니다.";
 
-    return '';
+    return "";
   };
 
   const canOpenConfirm = useMemo(() => {
-    return validate() === '';
+    return validate() === "";
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, sessionId, meetingType, gymName, writer, attendees]);
 
@@ -155,20 +162,20 @@ export default function AttendanceRegisterPage() {
       setValidationError(msg);
       return;
     }
-    setValidationError('');
+    setValidationError("");
     setConfirmOpen(true);
   };
 
   // ✅ 변경: 등록 성공 시 초기화 함수(날짜는 유지)
   const resetAfterSuccess = () => {
-    setSessionId('');
-    setMeetingType('정기모임');
-    setGymName('');
-    setWriter('');
-    setDescription('');
-    setAttendeeInput('');
+    setSessionId("");
+    setMeetingType("정기모임");
+    setGymName("");
+    setWriter("");
+    setDescription("");
+    setAttendeeInput("");
     setAttendees([]);
-    setValidationError('');
+    setValidationError("");
     // setDate(...) ❌ 날짜는 유지
   };
 
@@ -183,7 +190,7 @@ export default function AttendanceRegisterPage() {
     }
 
     setSubmitting(true);
-    setValidationError('');
+    setValidationError("");
 
     try {
       const payload = {
@@ -192,38 +199,38 @@ export default function AttendanceRegisterPage() {
         meetingType,
         gymName: String(gymName).trim(),
         writer: String(writer).trim(),
-        description: String(description ?? '').trim(),
+        description: String(description ?? "").trim(),
         attendees: attendees
-          .filter((a) => String(a.name ?? '').trim().length > 0)
+          .filter((a) => String(a.name ?? "").trim().length > 0)
           .map((a) => ({
-            name: String(a.name ?? '').trim(),
+            name: String(a.name ?? "").trim(),
             preregistered: a.preregistered,
             attendanceType: a.attendanceType,
           })),
       };
 
-      const res = await fetch('/api/attendance/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/attendance/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const json = await res.json().catch(() => null);
 
       if (!res.ok || !json?.ok) {
-        const errMsg = json?.message ?? '출석 저장 중 오류가 발생했습니다.';
+        const errMsg = json?.message ?? "출석 저장 중 오류가 발생했습니다.";
         setValidationError(errMsg);
         return;
       }
 
       // ✅ 성공 처리
       setConfirmOpen(false);
-      alert('출석 등록 완료 ✅\n오늘도 정모 여느라 수고많았습니다!');
+      alert("출석 등록 완료 ✅\n오늘도 정모 여느라 수고많았습니다!");
 
       // ✅ 변경: 등록 완료 후 초기화(날짜는 유지)
       resetAfterSuccess();
     } catch (e) {
-      const errMsg = e instanceof Error ? e.message : '알 수 없는 오류';
+      const errMsg = e instanceof Error ? e.message : "알 수 없는 오류";
       setValidationError(errMsg);
     } finally {
       setSubmitting(false);
@@ -242,7 +249,10 @@ export default function AttendanceRegisterPage() {
           </div>
         )}
 
-        <CardSection title="기본 정보" description="모임 등록에 필요한 기본 정보를 입력해 주세요.">
+        <CardSection
+          title="기본 정보"
+          description="모임 등록에 필요한 기본 정보를 입력해 주세요."
+        >
           <AttendanceBasicInfoSection
             date={date}
             meetingType={meetingType}
@@ -262,7 +272,10 @@ export default function AttendanceRegisterPage() {
           />
         </CardSection>
 
-        <CardSection title="출석자 정보" description="출석자의 참여 유형과 참석 형태를 선택해 주세요.">
+        <CardSection
+          title="출석자 정보"
+          description="출석자의 참여 유형과 참석 형태를 선택해 주세요."
+        >
           <AttendanceAttendeeSection
             attendeeInput={attendeeInput}
             attendees={attendees}
@@ -279,11 +292,11 @@ export default function AttendanceRegisterPage() {
             <button
               type="button"
               className={[
-                'h-12 w-full rounded-md text-sm font-semibold transition active:scale-[0.98]',
+                "h-12 w-full rounded-md text-sm font-semibold transition active:scale-[0.98]",
                 canOpenConfirm
-                 ? 'bg-slate-900 text-white shadow-soft hover:bg-slate-800'
-                 : 'border border-slate-200 bg-white text-slate-400 cursor-not-allowed',
-              ].join(' ')}
+                  ? "bg-slate-900 text-white shadow-soft hover:bg-slate-800"
+                  : "border border-slate-200 bg-white text-slate-400 cursor-not-allowed",
+              ].join(" ")}
               onClick={handleOpenConfirm}
               disabled={!canOpenConfirm}
             >
@@ -306,11 +319,11 @@ export default function AttendanceRegisterPage() {
             meetingType,
             gymName: String(gymName).trim(),
             writer: String(writer).trim(),
-            description: String(description ?? '').trim(),
+            description: String(description ?? "").trim(),
             attendees: attendees
-              .filter((a) => String(a.name ?? '').trim().length > 0)
+              .filter((a) => String(a.name ?? "").trim().length > 0)
               .map((a) => ({
-                name: String(a.name ?? '').trim(),
+                name: String(a.name ?? "").trim(),
                 preregistered: a.preregistered,
                 attendanceType: a.attendanceType,
               })),

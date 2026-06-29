@@ -67,7 +67,15 @@ export function ApplyConfirmModal(props: ApplyConfirmModalProps) {
     }
     if (action === "SET_DORMANT" && !dormantReason.trim()) return false;
     return true;
-  }, [submitting, changedBy, targets.length, mode, afterValue, action, dormantReason]);
+  }, [
+    submitting,
+    changedBy,
+    targets.length,
+    mode,
+    afterValue,
+    action,
+    dormantReason,
+  ]);
 
   if (!open) return null;
 
@@ -98,20 +106,21 @@ export function ApplyConfirmModal(props: ApplyConfirmModalProps) {
       const res = await fetch("/api/members/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body), 
+        body: JSON.stringify(body),
       });
 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok || !data?.ok) {
-        throw new Error(data?.message ?? '요청 처리 실패 (${res.status})');
-        
+        throw new Error(data?.message ?? "요청 처리 실패 (${res.status})");
       }
 
       onApplied?.();
       onClose();
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : "알 수 없는 오류가 발생했습니다.");
+      setErrorMsg(
+        e instanceof Error ? e.message : "알 수 없는 오류가 발생했습니다.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -126,7 +135,8 @@ export function ApplyConfirmModal(props: ApplyConfirmModalProps) {
         </div>
 
         <div className="mt-1 text-sm text-zinc-600">
-          상세 작업: <span className="font-medium text-zinc-900">{actionLabel}</span>
+          상세 작업:{" "}
+          <span className="font-medium text-zinc-900">{actionLabel}</span>
         </div>
 
         {/* Targets */}
@@ -143,7 +153,9 @@ export function ApplyConfirmModal(props: ApplyConfirmModalProps) {
         {mode === "PROFILE_EDIT" && (
           <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
             <div className="text-zinc-500">이전 값</div>
-            <div className="font-medium text-zinc-900">{beforeValue || "-"}</div>
+            <div className="font-medium text-zinc-900">
+              {beforeValue || "-"}
+            </div>
 
             <div className="mt-2 text-zinc-500">변경 값</div>
             <div className="font-medium text-zinc-900">{afterValue}</div>
@@ -153,7 +165,9 @@ export function ApplyConfirmModal(props: ApplyConfirmModalProps) {
         {/* 휴면 사유 입력 */}
         {action === "SET_DORMANT" && (
           <div className="mt-5">
-            <div className="text-xs text-zinc-500">휴면 사유 <span className="text-red-400">*</span></div>
+            <div className="text-xs text-zinc-500">
+              휴면 사유 <span className="text-red-400">*</span>
+            </div>
             <input
               value={dormantReason}
               onChange={(e) => setDormantReason(e.target.value)}
@@ -165,7 +179,9 @@ export function ApplyConfirmModal(props: ApplyConfirmModalProps) {
 
         {/* ✅ 운영진 이름 입력 (버튼 위) */}
         <div className="mt-5">
-          <div className="text-xs text-zinc-500">운영진 이름</div>
+          <div className="text-xs text-zinc-500">
+            운영진 이름 <span className="text-red-400">*</span>
+          </div>
           <input
             value={changedBy}
             onChange={(e) => setChangedBy(e.target.value)}
