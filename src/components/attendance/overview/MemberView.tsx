@@ -39,7 +39,7 @@ type Member = {
   joinDate?: string; // camel 가능
 };
 
-type RoleFilter = '전체' | '운영진' | '정회원' | '준회원';
+type RoleFilter = '전체' | '운영진' | '정회원' | '준회원' | 'OB';
 
 export type SortKey = 'name' | 'score';
 export type SortDir = 'asc' | 'desc';
@@ -47,7 +47,7 @@ export type SortDir = 'asc' | 'desc';
 type MemberCardRow = {
   memberId: string;
   name: string;
-  role: '운영진' | '정회원' | '준회원';
+  role: '운영진' | '정회원' | '준회원' | 'OB';
   joinDateRaw: string; // join_date/joinDate 원본 (신입 판정용)
   quarterScore: number;
   halfScore: number;
@@ -66,12 +66,8 @@ type MemberAttendanceRow = {
 };
 
 /* ------------------------ 설정(여기만 바꾸면 됨) ------------------------ */
-const MIN_QUARTER_SCORE_BY_ROLE: Record<'운영진' | '정회원', number> = {
-  운영진: 3,
-  정회원: 3,
-};
-
-const MIN_HALF_SCORE_FOR_JUNIOR = 4;
+const MIN_QUARTER_SCORE = 4; // 운영진/정회원/준회원 분기
+const MIN_HALF_SCORE_OB = 6; // OB 반기
 /* ---------------------------------------------------------------------- */
 
 /* ---------------- 유틸 ---------------- */
@@ -140,7 +136,7 @@ function isActiveTrue(v: unknown) {
 
 function isActiveRole(role?: string) {
   const r = (role ?? '').trim();
-  return r === '운영진' || r === '정회원' || r === '준회원';
+  return r === '운영진' || r === '정회원' || r === '준회원' || r === 'OB';
 }
 
 function monthsDiff(nowY: number, nowM: number, joinY: number, joinM: number) {
@@ -226,7 +222,7 @@ export default function MemberView({ initialSortKey = 'name', initialSortDir = '
       .map((m) => ({
         memberId: String((m as any).member_id ?? (m as any).memberId ?? '').trim(),
         name: String((m as any).name ?? '').trim(),
-        role: String((m as any).role ?? '').trim() as '운영진' | '정회원' | '준회원',
+        role: String((m as any).role ?? '').trim() as '운영진' | '정회원' | '준회원' | 'OB',
         joinDateRaw: getJoinDateRaw(m),
       }))
       .filter((m) => m.memberId && m.name);
@@ -332,11 +328,11 @@ export default function MemberView({ initialSortKey = 'name', initialSortDir = '
   }, [activeMembers]);
 
   const getDisplayScore = (role: MemberCardRow['role'], quarterScore: number, halfScore: number) => {
-    return role === '준회원' ? halfScore : quarterScore;
+    return role === 'OB' ? halfScore : quarterScore;
   };
 
   const getDisplayPeriodLabel = (role: MemberCardRow['role']): '이번분기' | '이번반기' => {
-    return role === '준회원' ? '이번반기' : '이번분기';
+    return role === 'OB' ? '이번반기' : '이번분기';
   };
 
   const isUnderScoreMember = useMemo(() => {
@@ -346,11 +342,10 @@ export default function MemberView({ initialSortKey = 'name', initialSortDir = '
       const quarterScore = memberQuarterData.get(m.memberId)?.scoreSum ?? 0;
       const halfScore = memberHalfData.get(m.memberId)?.scoreSum ?? 0;
 
-      if (m.role === '준회원') {
-        map.set(m.memberId, halfScore < MIN_HALF_SCORE_FOR_JUNIOR);
+      if (m.role === 'OB') {
+        map.set(m.memberId, halfScore < MIN_HALF_SCORE_OB);
       } else {
-        const min = MIN_QUARTER_SCORE_BY_ROLE[m.role] ?? 0;
-        map.set(m.memberId, quarterScore < min);
+        map.set(m.memberId, quarterScore < MIN_QUARTER_SCORE);
       }
     }
 
@@ -370,7 +365,7 @@ export default function MemberView({ initialSortKey = 'name', initialSortDir = '
 
       const displayScore = getDisplayScore(m.role, quarterScore, halfScore);
 
-      const displayRows = m.role === '준회원' ? (halfBucket?.rows ?? []) : (quarterBucket?.rows ?? []);
+      const displayRows = m.role === 'OB' ? (halfBucket?.rows ?? []) : (quarterBucket?.rows ?? []);
       const gymCount = new Set(displayRows.map((r) => String(r.gymName ?? '').trim()).filter(Boolean)).size;
 
       return {
@@ -427,19 +422,19 @@ export default function MemberView({ initialSortKey = 'name', initialSortDir = '
 
   const expandedRows = useMemo(() => {
     if (!expandedMemberId || !expandedMember) return [];
-    if (expandedMember.role === '준회원') return memberHalfData.get(expandedMemberId)?.rows ?? [];
+    if (expandedMember.role === 'OB') return memberHalfData.get(expandedMemberId)?.rows ?? [];
     return memberQuarterData.get(expandedMemberId)?.rows ?? [];
   }, [expandedMemberId, expandedMember, memberQuarterData, memberHalfData]);
 
   const expandedTotal = useMemo(() => {
     if (!expandedMemberId || !expandedMember) return 0;
-    if (expandedMember.role === '준회원') return memberHalfData.get(expandedMemberId)?.scoreSum ?? 0;
+    if (expandedMember.role === 'OB') return memberHalfData.get(expandedMemberId)?.scoreSum ?? 0;
     return memberQuarterData.get(expandedMemberId)?.scoreSum ?? 0;
   }, [expandedMemberId, expandedMember, memberQuarterData, memberHalfData]);
 
   const expandedPeriodLabel = useMemo(() => {
     if (!expandedMember) return '이번분기';
-    return expandedMember.role === '준회원' ? '이번반기' : '이번분기';
+    return expandedMember.role === 'OB' ? '이번반기' : '이번분기';
   }, [expandedMember]);
 
   const toggleExpand = (memberId: string) => {
@@ -490,6 +485,7 @@ export default function MemberView({ initialSortKey = 'name', initialSortDir = '
               { value: '운영진', label: '운영진' },
               { value: '정회원', label: '정회원' },
               { value: '준회원', label: '준회원' },
+              { value: 'OB', label: 'OB' },
             ]}
           />
         </div>
@@ -516,7 +512,7 @@ export default function MemberView({ initialSortKey = 'name', initialSortDir = '
           />
 
           <div className={helperTextClass}>
-            * 운영진/정회원: {MIN_QUARTER_SCORE_BY_ROLE.정회원}점 이상(분기), 준회원: {MIN_HALF_SCORE_FOR_JUNIOR}점 이상(반기)
+            * 운영진/정회원/준회원: {MIN_QUARTER_SCORE}점 이상(분기), OB: {MIN_HALF_SCORE_OB}점 이상(반기)
           </div>
         </div>
 

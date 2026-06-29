@@ -5,7 +5,7 @@ import type { ManageMode } from "./ManageModeTabs";
 import AutocompleteInput from "@/components/ui/AutocompleteInput";
 import Segmented from "@/components/ui/Segmented";
 
-export type PickMemberRole = "운영진" | "정회원" | "준회원" | "휴면" | "탈퇴";
+export type PickMemberRole = "운영진" | "정회원" | "준회원" | "OB" | "휴면" | "탈퇴";
 
 export type PickMember = {
   member_id: string;
@@ -21,6 +21,7 @@ type FilterValue =
   | "운영진"
   | "정회원"
   | "준회원"
+  | "OB"
   | "신입"
   | "휴면"
   | "탈퇴";
@@ -32,6 +33,7 @@ const FILTER_OPTIONS = [
   { label: "운영진", value: "운영진" },
   { label: "정회원", value: "정회원" },
   { label: "준회원", value: "준회원" },
+  { label: "OB", value: "OB" },
   { label: "신입", value: "신입" },
   { label: "휴면", value: "휴면" },
   { label: "탈퇴", value: "탈퇴" },

@@ -216,13 +216,13 @@ export async function GET(req: Request) {
         const total = sumByMember.get(memberId) ?? 0;
 
         if (attendanceUnder === "quarter") {
-          if (!(role === "운영진" || role === "정회원")) return false;
-          return total < 3;
+          if (!(role === "운영진" || role === "정회원" || role === "준회원")) return false;
+          return total < 4;
         }
 
-        // half
-        if (role !== "준회원") return false;
-        return total < 4;
+        // half (OB)
+        if (role !== "OB") return false;
+        return total < 6;
       });
     }
 

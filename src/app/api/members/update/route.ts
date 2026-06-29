@@ -287,14 +287,14 @@ export async function GET(req: Request) {
         const total = sumByMember.get(memberId) ?? 0;
 
         if (attendanceUnder === "quarter") {
-          // 운영진/정회원: 분기 3점 미달자
-          if (!(role === "운영진" || role === "정회원")) return false;
-          return total < 3;
+          // 운영진/정회원/준회원: 분기 4점 미달자
+          if (!(role === "운영진" || role === "정회원" || role === "준회원")) return false;
+          return total < 4;
         }
 
-        // half: 준회원 반기 4점 미달자
-        if (role !== "준회원") return false;
-        return total < 4;
+        // half: OB 반기 6점 미달자
+        if (role !== "OB") return false;
+        return total < 6;
       });
     }
 

@@ -110,22 +110,30 @@ function getRuleByRole(roleRaw: string | undefined): {
 } {
   const role = String(roleRaw ?? "").trim();
 
-  // 운영진은 문구에서 제외하지만 판정은 정회원 룰로
-  if (role === "준회원") {
+  if (role === "OB") {
     return {
       period: "half",
-      threshold: 4,
+      threshold: 6,
       label: "이번반기",
-      guidanceText: "준회원은 반기별로 4점 이상이어야 해요.",
+      guidanceText: "OB는 반기별로 6점 이상이어야 해요.",
+    };
+  }
+
+  if (role === "준회원") {
+    return {
+      period: "quarter",
+      threshold: 4,
+      label: "이번분기",
+      guidanceText: "준회원은 분기별로 4점 이상이어야 해요.",
     };
   }
 
   // 정회원/운영진/그 외(빈값 포함) → 분기 룰로 판정
   return {
     period: "quarter",
-    threshold: 3,
+    threshold: 4,
     label: "이번분기",
-    guidanceText: role === "정회원" ? "정회원은 분기별로 3점 이상이어야 해요." : null,
+    guidanceText: role === "정회원" ? "정회원은 분기별로 4점 이상이어야 해요." : null,
   };
 }
 
