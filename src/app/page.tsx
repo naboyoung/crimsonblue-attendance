@@ -1,5 +1,6 @@
 import PageShell from "@/components/layout/PageShell";
 import { HomeCalendar } from '@/components/home/HomeCalendar';
+import { HomeDashboard } from '@/components/home/HomeDashboard';
 
 
 export default function HomePage() {
@@ -16,6 +17,10 @@ export default function HomePage() {
       </header>
 
       <section>
+        <HomeDashboard />
+      </section>
+
+      <section className="mt-4">
         <HomeCalendar />
       </section>
 

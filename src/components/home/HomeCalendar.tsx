@@ -245,8 +245,8 @@ export function HomeCalendar() {
               onPointerCancel={endLongPress}
               onPointerLeave={endLongPress}
               className={[
-                "group rounded-2xl border px-2 py-2 text-left",
-                "min-h-[92px]",
+                "group rounded-2xl border px-2 py-1.5 text-left",
+                "min-h-16",
                 "transition",
                 "bg-white/5 backdrop-blur",
                 "border-white/10",
