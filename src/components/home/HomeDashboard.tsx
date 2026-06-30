@@ -75,6 +75,29 @@ export function HomeDashboard() {
           <div className="mt-2 text-xs text-red-500">{error}</div>
         ) : data ? (
           <>
+            <div className="mt-2 flex items-center gap-3 text-[11px] text-zinc-500">
+              <span>
+                전체{" "}
+                <span className="font-bold text-zinc-800">
+                  {(["운영진", "정회원", "준회원", "OB", "휴면"] as const).reduce(
+                    (s, k) => s + (data.memberStats[k] ?? 0),
+                    0
+                  )}
+                </span>
+                명
+              </span>
+              <span className="text-zinc-300">|</span>
+              <span>
+                활동{" "}
+                <span className="font-bold text-zinc-800">
+                  {(["운영진", "정회원", "준회원", "OB"] as const).reduce(
+                    (s, k) => s + (data.memberStats[k] ?? 0),
+                    0
+                  )}
+                </span>
+                명
+              </span>
+            </div>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
               {STAT_ITEMS.map(({ key, label }) => (
                 <div key={key} className="flex items-center gap-1.5">
@@ -87,7 +110,7 @@ export function HomeDashboard() {
               ))}
             </div>
             <div className="mt-2 text-[11px] text-zinc-400">
-              휴면 {data.memberStats["휴면"] ?? 0}명 · 탈퇴 {data.memberStats["탈퇴"] ?? 0}명
+              휴면 {data.memberStats["휴면"] ?? 0}명
             </div>
           </>
         ) : null}
