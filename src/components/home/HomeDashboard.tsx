@@ -97,6 +97,14 @@ export function HomeDashboard() {
                 </span>
                 명
               </span>
+              <span className="text-zinc-300">|</span>
+              <span>
+                휴면{" "}
+                <span className="font-bold text-zinc-800">
+                  {data.memberStats["휴면"] ?? 0}
+                </span>
+                명
+              </span>
             </div>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
               {STAT_ITEMS.map(({ key, label }) => (
@@ -108,9 +116,6 @@ export function HomeDashboard() {
                   <span className="text-xs text-zinc-400">명</span>
                 </div>
               ))}
-            </div>
-            <div className="mt-2 text-[11px] text-zinc-400">
-              휴면 {data.memberStats["휴면"] ?? 0}명
             </div>
           </>
         ) : null}
