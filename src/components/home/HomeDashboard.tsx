@@ -27,9 +27,9 @@ const RANK_EMOJI = ["🥇", "🥈", "🥉"];
 
 const STAT_ITEMS: { key: string; label: string }[] = [
   { key: "운영진", label: "운영진" },
+  { key: "OB", label: "OB" },
   { key: "정회원", label: "정회원" },
   { key: "준회원", label: "준회원" },
-  { key: "OB", label: "OB" },
 ];
 
 export function HomeDashboard() {
@@ -106,7 +106,7 @@ export function HomeDashboard() {
                 명
               </span>
             </div>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+            <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
               {STAT_ITEMS.map(({ key, label }) => (
                 <div key={key} className="flex items-center gap-1.5">
                   <Badge variant={roleToVariant(key)}>{label}</Badge>
