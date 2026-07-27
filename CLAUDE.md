@@ -48,7 +48,7 @@ npm run lint     # ESLint 실행
 |---|---|---|
 | `Members` | member_id, name, role, is_active, school, gender, birth_year, phone_number, region, level, join_date, last_updated_at, comment | 회원 마스터 |
 | `AttendanceHistory` | attendance_id, session_id, date, meeting_type, gym_name, writer, member_id, name, preregistered, attendance_type, **score**, created_at, note | 출석 기록 (행 단위 append) |
-| `ScoreRule` | role, preregistered, attendance_type, score | 출석 점수 룩업 테이블 |
+| `ScoreRule` | role, meeting_type, preregistered, attendance_type, score | 출석 점수 룩업 테이블 |
 | `Settings` | key, value, updated_at | 운영 설정 (admin_password_hash 등) |
 | `AdminConfig` | key, value, note | 크루원 조회 기능 ON/OFF 등 |
 | `CalendarMemo` | memo_id, date, meeting_type, assignee, gym_name, max_people, updated_at, is_deleted | 캘린더 일정 (소프트 삭제) |
@@ -119,12 +119,12 @@ BottomNav는 `/my` 경로에서 자동으로 숨겨진다.
 
 ## 출석 점수 시스템
 
-출석 등록 시 `ScoreRule` 시트에서 `(role, preregistered, attendance_type)` 조합으로 점수를 룩업한다.  
-룩업 실패 시 출석 저장 자체가 400 에러로 실패한다. 새 역할/조합 추가 시 ScoreRule 시트에 행을 먼저 추가해야 한다.
+출석 등록 시 `ScoreRule` 시트에서 `(role, meeting_type, preregistered, attendance_type)` 조합으로 점수를 룩업한다.  
+룩업 실패 시 출석 저장 자체가 400 에러로 실패한다. 새 역할/모임유형/조합 추가 시 ScoreRule 시트에 행을 먼저 추가해야 한다.
 
-크루원 자기 조회의 점수 기준:
-- 정회원/운영진: **분기별 3점 이상**
-- 준회원: **반기별 4점 이상**
+크루원 자기 조회의 점수 기준 (`src/app/api/my/attendance/route.ts`의 `getRuleByRole` 기준):
+- 정회원/운영진/준회원: **분기별 4점 이상**
+- OB: **반기별 6점 이상**
 
 ---
 

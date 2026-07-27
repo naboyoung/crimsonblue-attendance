@@ -25,8 +25,8 @@ const SHEET_ATTENDANCE = 'AttendanceHistory';
 const SHEET_SCORE_RULE = 'ScoreRule'; // ✅ ScoreRule 시트
 
 // ✅ ScoreRule lookup key 생성
-function makeRuleKey(role: string, preregistered: string, attendanceType: string) {
-  return `${role}||${preregistered}||${attendanceType}`;
+function makeRuleKey(role: string, meetingType: string, preregistered: string, attendanceType: string) {
+  return `${role}||${meetingType}||${preregistered}||${attendanceType}`;
 }
 
 // ✅ 안전한 점수 파싱 (시트에는 문자열로 들어올 수 있음)
@@ -39,7 +39,7 @@ function parseScore(v: unknown): number | null {
 /**
  * ✅ 출석 1세션 저장(= 참석자 행 N개를 AttendanceHistory에 append)
  * - Members: name -> { member_id, role } 매핑
- * - ScoreRule: (role, preregistered, attendance_type) -> score 매핑
+ * - ScoreRule: (role, meeting_type, preregistered, attendance_type) -> score 매핑
  * - AttendanceHistory: score 컬럼에 자동 반영
  */
 export async function saveAttendanceSession(payload: AttendanceRegisterPayload): Promise<SaveResult> {
@@ -86,7 +86,7 @@ export async function saveAttendanceSession(payload: AttendanceRegisterPayload):
     }
 
     // -----------------------
-    // 3) ScoreRule 시트 읽기 → (role, preregistered, attendance_type) -> score
+    // 3) ScoreRule 시트 읽기 → (role, meeting_type, preregistered, attendance_type) -> score
     // -----------------------
     const rules = await readSheetObjects(SHEET_SCORE_RULE);
 
@@ -94,13 +94,14 @@ export async function saveAttendanceSession(payload: AttendanceRegisterPayload):
     const scoreRuleMap = new Map<string, number>();
     for (const r of rules) {
       const role = String(r.role ?? '').trim();
+      const meetingType = String(r.meeting_type ?? '').trim();
       const preregistered = String(r.preregistered ?? '').trim();
       const attendanceType = String(r.attendance_type ?? '').trim();
       const score = parseScore(r.score);
 
-      if (!role || !preregistered || !attendanceType || score === null) continue;
+      if (!role || !meetingType || !preregistered || !attendanceType || score === null) continue;
 
-      scoreRuleMap.set(makeRuleKey(role, preregistered, attendanceType), score);
+      scoreRuleMap.set(makeRuleKey(role, meetingType, preregistered, attendanceType), score);
     }
 
     // -----------------------
@@ -128,12 +129,12 @@ export async function saveAttendanceSession(payload: AttendanceRegisterPayload):
       }
 
       // ✅ ScoreRule에서 score lookup
-      const key = makeRuleKey(role, a.pre_registered, a.attendance_type);
+      const key = makeRuleKey(role, payload.meeting_type, a.pre_registered, a.attendance_type);
       const score = scoreRuleMap.get(key);
 
       if (score === undefined) {
         throw new Error(
-          `ScoreRule 시트에 점수 규칙이 없습니다: role=${role}, preregistered=${a.pre_registered}, attendance_type=${a.attendance_type}`,
+          `ScoreRule 시트에 점수 규칙이 없습니다: role=${role}, meeting_type=${payload.meeting_type}, preregistered=${a.pre_registered}, attendance_type=${a.attendance_type}`,
         );
       }
 
