@@ -77,7 +77,7 @@ export default function MorePage() {
         <div className="divide-y">
           {/* 크림슨블루 회칙 */}
           <a
-            href="https://drive.google.com/file/d/1NrzYXccyQYbQ2FKx5TrnXqIMdx1ho93F/view"
+            href={process.env.NEXT_PUBLIC_GUIDE_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="flex w-full items-center justify-between rounded-md px-3 py-3 text-sm hover:bg-zinc-50"
@@ -88,7 +88,7 @@ export default function MorePage() {
 
           {/* 담당업무(Google Sheet) */}
           <a
-            href="https://docs.google.com/spreadsheets/d/16kXhEch_y5-69sSA4bxa5xV0AefVNnFHl52NN9dWJ_A/edit?gid=659829463#gid=659829463"
+            href={process.env.NEXT_PUBLIC_ORIGINAL_SHEET_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="flex w-full items-center justify-between rounded-md px-3 py-3 text-sm hover:bg-zinc-50"
