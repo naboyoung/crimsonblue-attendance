@@ -1,36 +1,339 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🧗 CrimsonBlue Attendance
 
-## Getting Started
+> **100명 이상의 클라이밍 동호회를 위한 출석·회원 관리 웹서비스**
 
-First, run the development server:
+기존 Google Sheets 기반의 수기 출석 관리 프로세스를 웹서비스로 전환한 프로젝트입니다.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+운영진이 직접 시트에 출석 정보를 입력하고 분기마다 출석점수를 계산하던 방식을 개선하여, **출석 등록부터 점수 계산, 회원 현황 조회 및 회원 관리까지 하나의 웹서비스에서 처리할 수 있도록 구현했습니다.**
+
+실제 클라이밍 동호회에서 **약 9개월간 운영 중인 서비스**이며, 기획부터 개발·배포·운영·유지보수까지 직접 담당하고 있습니다.
+
+<p align="center">
+<img width="864" height="1884" alt="image" src="https://github.com/user-attachments/assets/ae34eb54-a415-411b-a12f-5e4cdddc55d8" />
+</p>
+
+---
+
+## 📌 Project Overview
+
+| 항목    | 내용                                               |
+| ----- | ------------------------------------------------ |
+| 프로젝트  | CrimsonBlue Attendance                           |
+| 목적    | 동호회 출석 및 회원관리 업무 자동화                             |
+| 사용자   | 클라이밍 동호회 운영진                                     |
+| 관리 규모 | 회원 100명+                                         |
+| 운영 기간 | 2026.01 ~ 현재                                     |
+| 담당    | 기획 / UI 설계 / Frontend / Backend / 배포 / 운영 및 유지보수 |
+
+---
+
+## 💡 Why I Built This
+
+기존에는 여러 운영진이 하나의 Google Sheets에 접속하여 출석 정보를 직접 관리했습니다.
+
+모임이 끝날 때마다
+
+```text
+모임 장소 확인
+        ↓
+참석 회원 확인
+        ↓
+Google Sheets 접속
+        ↓
+회원별 참석 / 지각 / 불참 직접 입력
+        ↓
+출석 기록 누적
+        ↓
+분기 말 수식을 이용해 출석점수 계산
+        ↓
+회원별 활동 현황 확인 및 관리
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+과정을 반복해야 했습니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+회원 수가 100명을 넘어가면서 입력해야 할 데이터가 많아졌고, 회원의 역할과 참석 유형에 따라 출석점수 기준도 달라 운영진의 관리 부담이 커졌습니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+이를 해결하기 위해 **기존 Google Sheets는 데이터 저장소로 유지하면서 운영진이 필요한 기능만 웹 UI에서 사용할 수 있도록 서비스를 개발했습니다.**
 
-## Learn More
+### Before
 
-To learn more about Next.js, take a look at the following resources:
+* 여러 운영진이 동일한 Sheet에 직접 데이터 입력
+* 출석 여부와 지각 여부 등을 수기로 관리
+* 분기마다 출석점수 별도 확인
+* 회원 수 증가에 따라 관리해야 할 데이터 증가
+* 복잡한 Sheet 구조를 운영진 모두가 이해해야 함
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### After
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+* 웹 UI에서 참석 회원만 선택하여 출석 등록
+* 조건에 따른 출석점수 자동 계산
+* 회원별 출석 현황 자동 조회
+* 회원 정보 및 활동 상태를 웹에서 관리
+* 운영진은 원본 Sheet 구조를 알지 못해도 서비스 이용 가능
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🖥️ Main Features
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 1. 출석 등록
+
+정기모임·대관행사 등의 모임 유형과 참석 회원을 선택하면 출석 정보를 등록할 수 있습니다.
+
+회원 역할, 참석 형태, 지각 여부 등의 조건에 따라 출석점수가 자동으로 결정됩니다.
+
+<p align="center">
+<img width="678" height="1870" alt="image" src="https://github.com/user-attachments/assets/cd602a70-a99a-4c98-9047-00cfa94cc3e3" />
+</p>
+
+### 2. 출석 현황
+
+누적된 출석 데이터를 바탕으로 회원별 출석 현황과 점수를 확인할 수 있습니다.
+
+운영진이 원본 데이터를 직접 계산하지 않고도 현재 상태를 확인할 수 있도록 구성했습니다.
+
+<p align="center">
+<img width="636" height="1860" alt="image" src="https://github.com/user-attachments/assets/9eae441b-49f0-42f3-87d9-2a8c37b4aaee" />
+</p>
+
+### 3. 회원 관리
+
+회원 정보를 조회하고 운영에 필요한 상태를 관리할 수 있습니다.
+
+회원 수가 증가해도 전체 회원의 상태를 한 화면에서 확인할 수 있도록 구현했습니다.
+
+<table>
+  <tr>
+    <td align="center">
+      <img width="882" height="882" alt="image" src="https://github.com/user-attachments/assets/e72118b9-bd84-4fc8-b5b3-751ea769d79a" />
+    </td>
+    <td align="center">
+      <img width="874" height="1852" alt="image" src="https://github.com/user-attachments/assets/c67c96f2-b024-4a0d-aa0a-e2b55de84205" />
+    </td>
+  </tr>
+</table>
+
+
+
+
+### 4. 개인 출석 조회
+
+회원별 출석 기록과 점수를 조회할 수 있도록 별도의 조회 기능을 제공합니다.
+
+### 5. 캘린더 및 운영 기능
+
+모임 일정과 운영에 필요한 정보를 관리할 수 있는 기능을 추가하여 출석관리뿐 아니라 운영진의 반복적인 관리 업무를 서비스 안에서 처리할 수 있도록 확장하고 있습니다.
+
+---
+
+## 🏗️ Architecture
+
+```text
+┌───────────────────────────────┐
+│            Client             │
+│      Next.js / React UI       │
+└───────────────┬───────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│       Next.js App Router      │
+│                               │
+│   /api/attendance             │
+│   /api/members                │
+│   /api/auth                   │
+│   /api/calendar-memo          │
+│   /api/my                     │
+└───────────────┬───────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│        Server Services        │
+│                               │
+│   attendanceService           │
+│   memberManageService         │
+│   calendarMemoService         │
+│   settingsStore               │
+│   authToken                   │
+└───────────────┬───────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│       Google Sheets API       │
+└───────────────┬───────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│        Google Sheets          │
+│                               │
+│   Members                     │
+│   AttendanceHistory           │
+│   ScoreRule / Settings ...    │
+└───────────────────────────────┘
+```
+
+기존 운영진이 사용하던 Google Sheets를 완전히 폐기하기보다 **데이터 저장소로 유지하면서 서비스 레이어를 추가하는 방식**을 선택했습니다.
+
+기존 데이터를 그대로 활용할 수 있고 필요한 경우 원본 데이터에도 접근할 수 있어, 실제 운영 환경을 크게 변경하지 않으면서 웹서비스로 전환할 수 있었습니다.
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+* **Next.js 16**
+* **React 19**
+* **TypeScript**
+* **Tailwind CSS**
+
+### Backend
+
+* **Next.js Route Handlers**
+* **Server-side Service Layer**
+* **Google Sheets API**
+
+### Authentication
+
+* **bcrypt**
+* HMAC 기반 Session Token
+* HttpOnly Cookie
+* Middleware 기반 접근 제어
+
+### Infrastructure
+
+* **Vercel**
+* **Google Sheets**
+
+### AI-assisted Development
+
+* **ChatGPT**
+* **Claude Code**
+
+---
+
+## 🔐 Authentication
+
+운영진만 서비스에 접근할 수 있도록 인증 기능을 구현했습니다.
+
+```text
+Password
+    ↓
+bcrypt Verification
+    ↓
+HMAC Signed Session Token
+    ↓
+HttpOnly Cookie
+    ↓
+Middleware
+    ↓
+Protected Page / API
+```
+
+인증에 필요한 Secret과 Google API Credential은 코드에 직접 포함하지 않고 환경변수로 분리했습니다.
+
+---
+
+## ⚙️ Attendance Score Logic
+
+이 프로젝트에서 중요하게 다룬 부분 중 하나는 다양한 운영 규칙을 코드로 표현하는 것이었습니다.
+
+출석점수는 단순히 참석 여부만으로 결정되지 않고 다음과 같은 조건의 영향을 받습니다.
+
+```text
+회원 역할
+   ×
+모임 유형
+   ×
+기존 / 추가 참석
+   ×
+정상 / 지각 / 불참
+   ↓
+출석점수 결정
+```
+
+초기에는 조건을 코드 중심으로 처리했지만 실제 운영 과정에서 규칙 변경과 예외 상황을 관리하기 어렵다는 문제를 경험했습니다.
+
+이를 개선하기 위해 점수 규칙을 `ScoreRule` 데이터로 분리하고 조건 조합을 기준으로 해당 점수를 조회하도록 구성했습니다.
+
+이를 통해 운영 규칙과 애플리케이션 로직의 결합도를 낮추고 향후 규칙 변경에도 대응하기 쉽도록 개선했습니다.
+
+---
+
+## 🔧 Troubleshooting
+
+### 특정 회원의 출석점수가 잘못 계산되는 문제
+
+실제 서비스를 운영하면서 OB 회원의 출석점수에서 예외 사례를 발견했습니다.
+
+OB 회원은 운영 활성화를 위해 대관행사 참석 시 일반 참석보다 높은 점수를 받을 수 있도록 규칙이 설정되어 있었지만, 해당 조건이 일반 정기모임에도 적용되는 문제가 있었습니다.
+
+### 원인
+
+회원의 Role만으로 점수를 구분하면 실제 운영 규칙을 충분히 표현할 수 없었습니다.
+
+동일한 회원이라도 **모임 유형과 참석 방식에 따라 서로 다른 점수 규칙이 적용되어야 했습니다.**
+
+### 개선
+
+점수 결정 조건을 세분화했습니다.
+
+```text
+role
++ meeting_type
++ preregistered
++ attendance_type
+```
+
+각 조건의 조합에 해당하는 `ScoreRule`을 조회하여 점수를 결정하도록 수정했습니다.
+
+이를 통해 정기모임과 대관행사의 규칙을 분리하고 실제 동호회 회칙과 동일한 방식으로 출석점수가 계산되도록 개선했습니다.
+
+이 경험을 통해 기능 구현뿐 아니라 **실제 운영 과정에서 발생하는 예외 상황을 관찰하고 데이터 구조와 로직을 지속적으로 개선하는 과정의 중요성**을 배웠습니다.
+
+---
+
+## 🤖 AI-assisted Workflow
+
+프로젝트 초기에는 기존 출석관리 방식과 운영진의 사용자 흐름을 ChatGPT에 설명하고, 필요한 기능과 서비스 구조를 구체화하는 과정에 활용했습니다.
+
+개발 이후에는 Claude Code를 활용하여 코드 분석, 기능 개선 및 유지보수 과정의 생산성을 높이고 있습니다.
+
+AI가 제안한 결과를 그대로 적용하기보다 실제 동호회 회칙과 기존 데이터 구조, 운영 과정에서 발생하는 예외 사례를 기준으로 검증한 뒤 적용하고 있습니다.
+
+AI를 개발자의 판단을 대신하는 도구가 아니라 **반복적인 구현과 분석 시간을 줄이고 문제 정의와 검증에 더 집중하기 위한 개발 도구**로 활용하고 있습니다.
+
+---
+
+## 📈 Operation & Results
+
+현재 CrimsonBlue Attendance는 실제 클라이밍 동호회 운영에 사용되고 있습니다.
+
+* **100명 이상의 회원 관리**
+* **약 9개월간 실제 운영**
+* 운영진이 직접 Google Sheets에 출석정보를 입력하던 과정 제거
+* 출석점수 자동 계산
+* 회원 및 출석 현황 조회 자동화
+* 실제 사용자 피드백을 기반으로 지속적인 기능 개선
+
+단순히 기능 구현에서 프로젝트를 종료하지 않고, 실제 사용 과정에서 발견되는 문제를 수정하며 서비스를 지속적으로 운영하고 있습니다.
+
+---
+
+## 🔒 Data & Security
+
+본 Repository에는 실제 회원 개인정보와 운영 데이터가 포함되어 있지 않습니다.
+
+실제 운영 데이터는 별도의 Google Sheets에서 관리하며 Google API Credential, 인증 Secret, 운영 문서 주소 등의 민감정보는 환경변수로 분리했습니다.
+
+따라서 공개된 소스코드만으로 실제 운영 데이터에 접근할 수 없습니다.
+
+---
+
+## 🚀 What I Learned
+
+이 프로젝트를 통해 개발은 요구된 기능을 구현하는 것만으로 끝나지 않는다는 것을 배웠습니다.
+
+실제 사용자가 서비스를 사용하면서 예상하지 못했던 예외 상황이 발생했고, 이를 해결하는 과정에서 사용자 흐름과 데이터 구조, 비즈니스 규칙을 함께 고려해야 했습니다.
+
+특히 기존 업무 방식을 이해하고 필요한 기능을 정의한 뒤 직접 구현하고, 배포 이후 실제 사용자의 피드백을 다시 서비스에 반영하는 **기획 → 개발 → 배포 → 운영 → 개선의 전체 사이클**을 경험했습니다.
+
+앞으로도 기술 자체보다 사용자가 겪는 문제를 먼저 이해하고, 이를 안정적인 서비스로 구현할 수 있는 개발자로 성장하고자 합니다.
